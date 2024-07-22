@@ -23,6 +23,7 @@ let ident = (letter|'_')(letter|decdigit|'_')*
 let whitespace = [' ' '\t']+ (* TODO: modify whitespace refer to https://doc.rust-lang.org/reference/whitespace.html*)
 let escape = '\\' _
 let newline = '\r' | '\n' | "\r\n"
+let nothing = ""
 
 rule read_token = parse 
     (* Key words *)
@@ -140,7 +141,7 @@ rule read_token = parse
     | ident { IDENT (Lexing.lexeme lexbuf) }
 
     (* Special Chars *)
-
+    | nothing {IMPOSSIBLE_TO_MATCH}
     | whitespace { next_line lexbuf; read_token lexbuf }
     | newline { next_line lexbuf; read_token lexbuf }
     | eof { EOF }

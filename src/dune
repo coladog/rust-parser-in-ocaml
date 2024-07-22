@@ -18,5 +18,6 @@
 (env
  (dev
   (flags
-   (:standard -w -33))))
+   (:standard -w -27 -w -33)
+   )))
 ; suppressing unused token warnings

@@ -111,4 +111,6 @@
 
 %token EOF
 
+%token IMPOSSIBLE_TO_MATCH
+
 %%

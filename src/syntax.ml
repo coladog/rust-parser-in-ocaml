@@ -20,8 +20,7 @@ declaration -> decl
 expression -> expr
 enumeration -> enum
 *)
-
-exception Not_Implemented of string
+(* Trying to support all features in https://github.com/SLMT/rust-snake/tree/master/src *)
 
 
 
@@ -31,19 +30,20 @@ exception Not_Implemented of string
 (* 6. Items *)
 
 type item = 
-| Vis_Item of outer_attrs * visibility option * vis_item
+| Vis_Item of outer_attrs option * visibility option * vis_item
 | Macro_Item
 [@@deriving show, eq]
 
 and 'a non_empty_list = 'a list
+and not_implemented = string
 
 and vis_item =
   | Module of module__ (*module is a keyword of OCaml, so use __*)
   | Extern_Crate of extern_crate
   | Use_Declaration of use_decl
-  | Fn of fn__
+  | Fn of fn
   | Type_Alias of type_alias
-  | Struct_vis_item of struct__ (* TODO: figure out on solving name conflicts*)
+  | Struct_Vis_Item of struct__ (* TODO: figure out on solving name conflicts*)
   | Enumeration of enumeration
   | Union of union
   | Constant_Item of constant_item
@@ -79,7 +79,7 @@ and use_decl =
 
   (* 6.4 Functions *)
 
-and fn__ = 
+and fn = 
    fn_qualifiers option * string * generic_params * fn_params option * fn_return_type option * where_clause option * block_expr
 
 and fn_qualifiers = 
@@ -92,17 +92,17 @@ and fn_qualifiers =
 and fn_params = self_param option * fn_param list 
 
 and self_param = 
-  | Short_Hand of outer_attrs * shorthand_self
-  | Typed_Self of outer_attrs * typed_self
+  | Short_Hand of outer_attrs option * shorthand_self
+  | Typed_Self of outer_attrs option * typed_self
 
 and shorthand_self = lifetime option * mutability
 
 and typed_self = mutability * type__
 
 and fn_param = 
-  | Function_Param_Pattern of outer_attrs * fn_param_pattern
-  | Elipsis of outer_attrs
-  | Type of outer_attrs * type__
+  | Function_Param_Pattern of outer_attrs option * fn_param_pattern
+  | Elipsis of outer_attrs option
+  | Type of outer_attrs option * type__
 
 and fn_param_pattern = pattern_no_top_alt * type__ option
 
@@ -125,11 +125,11 @@ and tuple_struct = string * generic_params option * tuple_fields option * where_
 
 and struct_fields = struct_field non_empty_list
 
-and struct_field = outer_attrs * visibility option * string * type__
+and struct_field = outer_attrs option * visibility option * string * type__
 
 and tuple_fields = tuple_field non_empty_list
 
-and tuple_field = outer_attrs * visibility option * type__
+and tuple_field = outer_attrs option * visibility option * type__
 
   (* 6.7 Enumerations *)
 
@@ -138,8 +138,8 @@ and enum = string * generic_params option * where_clause option * enum_items
 and enum_items = enum_item non_empty_list
 
 and enum_item = 
-  | Enum_Struct of outer_attrs * visibility option * string * struct_fields * enum_discriminant option
-  | Enum_Tuple of outer_attrs * visibility option * string * tuple_fields * enum_discriminant option
+  | Enum_Struct of outer_attrs option * visibility option * string * struct_fields * enum_discriminant option
+  | Enum_Tuple of outer_attrs option * visibility option * string * tuple_fields * enum_discriminant option
 
 and enum_discriminant = expr 
 
@@ -175,20 +175,20 @@ and unsafe = unit
 and safety = unsafe option
 and mut = unit
 and mutability = mut option
-and outer_attrs = outer_attr list
+and outer_attrs = outer_attr list (* an empty list is #[], a None is just nothing *)
 
-and enumeration = Not_Implemented
-and union = Not_Implemented
-and constant_item = Not_Implemented
-and static_item = Not_Implemented
-and trait = Not_Implemented
-and implementation = Not_Implemented
-and extern_block = Not_Implemented
-and generic_params = Not_Implemented
-and where_clause = Not_Implemented
-and block_expr = Not_Implemented
-and lifetime = Not_Implemented
-and type__ = string (* TODO: impl *)
-and pattern_no_top_alt = Not_Implemented
-and type_param_bounds = Not_Implemented
-and expr = Not_Implemented
+and enumeration = not_implemented
+and union = not_implemented
+and constant_item = not_implemented
+and static_item = not_implemented
+and trait = not_implemented
+and implementation = not_implemented
+and extern_block = not_implemented
+and generic_params = not_implemented
+and where_clause = not_implemented
+and block_expr = not_implemented
+and lifetime = not_implemented
+and type__ = not_implemented
+and pattern_no_top_alt = not_implemented
+and type_param_bounds = not_implemented
+and expr = not_implemented
