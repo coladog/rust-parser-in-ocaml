@@ -1,8 +1,8 @@
 
 
-(executable
+(test
  (name unit_test)
- (libraries rust_parser))
+ (libraries rust_parser alcotest))
 
  
 (env
