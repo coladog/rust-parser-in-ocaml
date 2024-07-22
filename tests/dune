@@ -1,0 +1,11 @@
+
+
+(executable
+ (name unit_test)
+ (libraries rust_parser))
+
+ 
+(env
+ (dev
+  (flags
+   (:standard -w -33))))
