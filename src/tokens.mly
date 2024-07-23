@@ -109,6 +109,15 @@
 %token LBRACKET RBRACKET
 %token LBRACE RBRACE
 
+%token QUOTE_ESC_SGL QUOTE_ESC_DBL // quote escape single and double 
+%token ASCII_ESC_X ASCII_ESC_N ASCII_ESC_R ASCII_ESC_T ASCII_ESC_SLASH ASCII_ESC_0
+%token UNICODE_ESC
+%token <string> STR_LIT // string literal
+
+%token LIFETIME_QUOTE
+
+%token UMINUS UPLUS UNOT UREF UMUTREF
+
 %token EOF
 
 %token IMPOSSIBLE_TO_MATCH

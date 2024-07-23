@@ -6,6 +6,8 @@
 // precedence and associativity
 // ref: https://doc.rust-lang.org/reference/expressions.html
 
+%nonassoc UMINUS UPLUS UNOT UREF UMUTREF
+
 %right EQ PLUSEQ MINUSEQ MULEQ DIVEQ PERCENTEQ ANDEQ OREQ CARETEQ SHLEQ SHREQ
 // require parentheses for .. and ..=
 %left OROR
@@ -17,19 +19,68 @@
 %left SHL SHR
 %nonassoc QUESTION
 
+// remove for productions (the start symbols)
 %start <item> item
-
+%start <string_literal> string_literal
+%start <fn_sig> fn_sig
 %%
+
+/* 2. Lexical structure */
+    /* 2.6 Tokens */
+string_literal: 
+    | s = STR_LIT { s }
 
 /* 6. Items */
 item:
 //TODO: ignoring all attributes at this moment, should fix it
     | oa = option(outer_attrs) v = option(visibility) vi = vis_item { Vis_Item(None, v, vi) }
 
-
 vis_item: 
     | s = struct__ { Struct_Vis_Item(s) }
 
+
+    /* 6.4 Functions*/
+
+//  TODO: impl function with body
+fn_sig:
+    | fq = option(fn_qualifiers) KW_FN id = IDENT gp = option(generic_params) LPAREN fps = ioption(fn_params) RPAREN ret = option(fn_return_type) wc = option(where_clause) SEMI { (fq, id, None, fps, ret, None) }
+
+fn_qualifiers: 
+    | KW_CONST { Const }
+    | KW_ASYNC { Async }
+    | KW_UNSAFE { Unsafe }
+    | KW_EXTERN abi = option(fn_abi) { Extern(abi) }
+
+fn_abi: 
+    | s = STR_LIT { s }
+
+fn_params:
+    | sp = option(self_param) option(COMMA) fps = separated_list(COMMA, fn_param) { (sp, fps) }
+
+self_param:
+    | oa = option(outer_attrs) ss = shorthand_self { Short_Hand(None, ss) }
+    | oa = option(outer_attrs) ts = typed_self { Typed_Self(None, ts) }
+
+shorthand_self:
+    | r = option(AND) m = option(KW_MUT) KW_SELFVALUE {Ref_Only(r, m)}
+    | rm = option(pair(AND, lifetime)) m = option(KW_MUT) KW_SELFVALUE {Ref_Lifetime(rm, m)}
+
+typed_self:
+    | m = ioption(KW_MUT) KW_SELFVALUE COLON t = type__ { (m, t) }
+// have to use ioption to make it work, refer to https://stackoverflow.com/questions/26182521/seemingly-equivalent-menhir-rules-change-the-shift-reduce-conflicts-found-in-gra#comment138906002_26182521
+fn_param: 
+    | oa = option(outer_attrs) p = fn_param_pattern { Fn_Param_Pattern(None, p) }
+    | oa = option(outer_attrs) t = type_or_elipsis { Type_Or_Elipsis(None, t) }
+
+fn_param_pattern: 
+    | p = pattern_no_top_alt COLON te = type_or_elipsis { (p, te) }
+
+type_or_elipsis:
+    | t = type__ { Type(t) }
+    | DOTDOTDOT { Elipsis }
+
+fn_return_type: 
+    | ARROW t = type__ { t }
 
     /* 6.6 Structs */
 struct__:
@@ -62,6 +113,8 @@ tuple_field:
 // TODO: add outer_attrs and actual type 
     | oa = option(outer_attrs) v = option(visibility) tid = type__ { (None, v, tid) }
 
+
+
 /* 12. Names */
     /* 12.6 Visibility and privacy */
 visibility: 
@@ -70,7 +123,7 @@ visibility:
     | KW_PUB KW_SUPER { Pub_Super }
     // TODO: Pub_Path
 
-/* -1. TODO: not implemented */
+/* -2. TODO: not implemented */
 type__: 
     | id = IDENT { id }
 generic_params: 
@@ -79,3 +132,7 @@ where_clause:
     | IMPOSSIBLE_TO_MATCH {}
 outer_attrs: 
     | IMPOSSIBLE_TO_MATCH {}
+lifetime: 
+    | LIFETIME_QUOTE id = IDENT { id }
+pattern_no_top_alt: 
+    | id = IDENT {id}

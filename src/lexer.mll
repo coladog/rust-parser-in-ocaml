@@ -1,13 +1,19 @@
 {
- open Tokens
- open Lexing
- exception Syntax_Error of string
- let next_line lexbuf =
-  let pos = lexbuf.lex_curr_p in
-  lexbuf.lex_curr_p <-
-    { pos with pos_bol = lexbuf.lex_curr_pos;
+open Tokens
+open Lexing
+exception Syntax_Error of string
+let next_line lexbuf =
+    let pos = lexbuf.lex_curr_p in
+        lexbuf.lex_curr_p <-
+        { pos with pos_bol = lexbuf.lex_curr_pos;
                pos_lnum = pos.pos_lnum + 1
-    }
+        }
+
+let hex_to_char_string hex_str =
+    let int_value = int_of_string ("0x" ^ hex_str) in
+    let char_value = Char.chr int_value in
+    String.make 1 char_value
+
 (*
 Refs: 
 FrontC 
@@ -80,7 +86,7 @@ rule read_token = parse
     | "try" { KW_TRY }
     | "macro_rules" { KW_MACRO_RULES }
     | "union" { KW_UNION }
-    | "static_lifetime" { KW_STATICLIFETIME }
+    | "'static" { KW_STATICLIFETIME }
 
     (* Punctuations *)
 
@@ -135,12 +141,26 @@ rule read_token = parse
     | "]" { RBRACKET }
     | "{" { LBRACE }
     | "}" { RBRACE }
+    
+    (* Others *)
 
-    (* Literals *)
+    | "'" {LIFETIME_QUOTE}
+
+    (* Literals related*)
 
     | ident { IDENT (Lexing.lexeme lexbuf) }
+    | "\\\'"{QUOTE_ESC_SGL}
+    | "\\\"" {QUOTE_ESC_DBL}
+    | "\\x" {ASCII_ESC_X}
+    | "\\n" {ASCII_ESC_N}
+    | "\\r" {ASCII_ESC_R}
+    | "\\t" {ASCII_ESC_T}
+    | "\\\\" {ASCII_ESC_SLASH}
+    | "\\0" {ASCII_ESC_0}
+    | "\\u" {UNICODE_ESC}
+    | '"' {read_string_literals (Buffer.create 15) lexbuf}
 
-    (* Special Chars *)
+    (* Special chars *)
     | nothing {IMPOSSIBLE_TO_MATCH}
     | whitespace { next_line lexbuf; read_token lexbuf }
     | newline { next_line lexbuf; read_token lexbuf }
@@ -157,3 +177,22 @@ and read_multi_line_comment = parse
     | newline {next_line lexbuf; read_multi_line_comment lexbuf}
     | eof {raise (Syntax_Error ("Lexer: Unterminated multi-line comment"))}
     | _ {read_multi_line_comment lexbuf}
+
+and read_string_literals buf = parse
+    | '"' {STR_LIT (Buffer.contents buf)} (* string literal ends here *)
+    | "\\\n" {(* directly skip *) read_string_literals buf lexbuf}
+    | "\\\'" {Buffer.add_char buf '\''; read_string_literals buf lexbuf}
+    | "\\\"" {Buffer.add_char buf '"'; read_string_literals buf lexbuf}
+    | "\\x" {Buffer.add_string buf "\\x"; read_string_literals buf lexbuf}
+    | "\\n" {Buffer.add_char buf '\n'; read_string_literals buf lexbuf}
+    | "\\r" {Buffer.add_char buf '\r'; read_string_literals buf lexbuf}
+    | "\\t" {Buffer.add_char buf '\t'; read_string_literals buf lexbuf}
+    | "\\\\" {Buffer.add_char buf '\\'; read_string_literals buf lexbuf}
+    | "\\0" {Buffer.add_char buf '\000'; read_string_literals buf lexbuf}
+    | [^ '\\' '"']+ {Buffer.add_string buf (Lexing.lexeme lexbuf); read_string_literals buf lexbuf}
+    | eof {raise (Syntax_Error ("Lexer: Unterminated string literal"))}
+    | _ {raise (Syntax_Error ("Lexer: Invalid string literal" ^ Lexing.lexeme lexbuf))}
+    (* | "\\u" {read_escape_u buf lexbuf}  TODO: implement UNICODE*) 
+and read_escape_x buf = parse
+    | hexdigit as hex {Buffer.add_char buf hex; read_escape_x buf lexbuf}
+    | _ {raise (Syntax_Error ("Lexer: Invalid escape sequence, \\x have to be followed by hexidecimal digits"))}

@@ -1,4 +1,3 @@
-
 (* AST structs refer to https://github.com/rust-lang/reference/tree/b1d10606478677491effea5880ca80d97fccca4c *)
 (* Naming convention refers to https://github.com/lindig/ocaml-style*)
 (* 
@@ -24,16 +23,17 @@ enumeration -> enum
 
 
 
-(* 1. Lexical structure *)
-
-
-(* 6. Items *)
-
-type item = 
-| Vis_Item of outer_attrs option * visibility option * vis_item
-| Macro_Item
+(* 2. Lexical structure *)
+(* 2.6 Tokens *)
+type string_literal = string
 [@@deriving show, eq]
-
+  (* 6. Items *)
+  
+type item = 
+  | Vis_Item of outer_attrs option * visibility option * vis_item
+  | Macro_Item
+  [@@deriving show, eq]
+  
 and 'a non_empty_list = 'a list
 and not_implemented = string
 
@@ -79,15 +79,18 @@ and use_decl =
 
   (* 6.4 Functions *)
 
-and fn = 
-   fn_qualifiers option * string * generic_params * fn_params option * fn_return_type option * where_clause option * block_expr
+and fn = fn_sig * block_expr
+  [@@deriving show, eq]
+
+and fn_sig = fn_qualifiers option * string * generic_params option * fn_params option * fn_return_type option * where_clause option
 
 and fn_qualifiers = 
-  | No_Qualifiers
   | Const
   | Async
   | Unsafe
-  | Extern of string option
+  | Extern of fn_abi option
+
+and fn_abi = string_literal
 
 and fn_params = self_param option * fn_param list 
 
@@ -95,16 +98,21 @@ and self_param =
   | Short_Hand of outer_attrs option * shorthand_self
   | Typed_Self of outer_attrs option * typed_self
 
-and shorthand_self = lifetime option * mutability
+and shorthand_self =
+  | Ref_Only of reference option * mutability
+  | Ref_Lifetime of (reference * lifetime) option * mutability
 
 and typed_self = mutability * type__
 
 and fn_param = 
-  | Function_Param_Pattern of outer_attrs option * fn_param_pattern
-  | Elipsis of outer_attrs option
-  | Type of outer_attrs option * type__
+  | Fn_Param_Pattern of outer_attrs option * fn_param_pattern
+  | Type_Or_Elipsis of outer_attrs option * type_or_elipsis
 
-and fn_param_pattern = pattern_no_top_alt * type__ option
+and fn_param_pattern = pattern_no_top_alt * type_or_elipsis
+
+and type_or_elipsis = 
+  | Type of type__
+  | Elipsis
 
 and fn_return_type = type__
 
@@ -175,6 +183,7 @@ and unsafe = unit
 and safety = unsafe option
 and mut = unit
 and mutability = mut option
+and reference = unit
 and outer_attrs = outer_attr list (* an empty list is #[], a None is just nothing *)
 
 and enumeration = not_implemented
