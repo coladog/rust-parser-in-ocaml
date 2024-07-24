@@ -74,7 +74,7 @@ shorthand_self:
     // | r = option(AND) m = option(KW_MUT) KW_SELFVALUE {Ref_Only(r, m)}
     // | rm = option(pair(AND, lifetime)) m = option(KW_MUT) KW_SELFVALUE 
     //   {Ref_Lifetime(rm, m)}
-    | r = option(ref_lifetime) m = ioption(KW_MUT) KW_SELFVALUE { 
+    | r = option(ref_lifetime) m = option(KW_MUT) KW_SELFVALUE { 
         match r with
         | None -> Ref_Only(None, m)
         | Some (r, Some l) -> Ref_Lifetime(Some (r, l), m)
@@ -83,12 +83,11 @@ shorthand_self:
 ref_lifetime:
     | r = AND { (r, None)}
     | r = AND l = lifetime { (r, Some l) }
-option_mut_self: 
-    | m = ioption(KW_MUT) KW_SELFVALUE { m }
 
 typed_self:
-    | m = option_mut_self COLON t = type__ 
-      { (m, t) }
+    | KW_SELFVALUE__COLON t = type__  { (None, t) }
+    | KW_MUT__KW_SELFVALUE__COLON t = type__ { (Some (), t) }
+
 // have to use ioption to make it work, refer to https://stackoverflow.com/questions/26182521/seemingly-equivalent-menhir-rules-change-the-shift-reduce-conflicts-found-in-gra#comment138906002_26182521
 fn_param: 
     | oa = option(outer_attrs) p = fn_param_pattern 

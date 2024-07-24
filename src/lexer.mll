@@ -29,7 +29,6 @@ let ident = (letter|'_')(letter|decdigit|'_')*
 let whitespace = [' ' '\t']+ (* TODO: modify whitespace refer to https://doc.rust-lang.org/reference/whitespace.html*)
 let escape = '\\' _
 let newline = '\r' | '\n' | "\r\n"
-let nothing = ""
 
 rule read_token = parse 
     (* Key words *)
@@ -161,6 +160,11 @@ rule read_token = parse
     | "\\0" {ASCII_ESC_0}
     | "\\u" {UNICODE_ESC}
     | '"' {read_string_literals (Buffer.create 15) lexbuf}
+
+    (* Used to fix SR/RR conflicts *)
+
+    | "self" whitespace+ ":" {KW_SELFVALUE__COLON}
+    | "mut" whitespace+ "self" whitespace+ ":" {KW_MUT__KW_SELFVALUE__COLON}
 
     (* Special chars *)
     | whitespace { next_line lexbuf; read_token lexbuf }
