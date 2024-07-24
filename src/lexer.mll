@@ -97,6 +97,8 @@ rule read_token = parse
     | "%" { PERCENT }
     | "^" { CARET }
     | "!" { NOT }
+    | "&" { AND }
+    | "|" { OR }
     | "&&" { ANDAND }
     | "||" { OROR }
     | "<<" { SHL }
@@ -161,7 +163,6 @@ rule read_token = parse
     | '"' {read_string_literals (Buffer.create 15) lexbuf}
 
     (* Special chars *)
-    | nothing {IMPOSSIBLE_TO_MATCH}
     | whitespace { next_line lexbuf; read_token lexbuf }
     | newline { next_line lexbuf; read_token lexbuf }
     | eof { EOF }
@@ -189,10 +190,13 @@ and read_string_literals buf = parse
     | "\\t" {Buffer.add_char buf '\t'; read_string_literals buf lexbuf}
     | "\\\\" {Buffer.add_char buf '\\'; read_string_literals buf lexbuf}
     | "\\0" {Buffer.add_char buf '\000'; read_string_literals buf lexbuf}
-    | [^ '\\' '"']+ {Buffer.add_string buf (Lexing.lexeme lexbuf); read_string_literals buf lexbuf}
+    | [^ '\\' '"']+ {Buffer.add_string buf (Lexing.lexeme lexbuf); 
+        read_string_literals buf lexbuf}
     | eof {raise (Syntax_Error ("Lexer: Unterminated string literal"))}
-    | _ {raise (Syntax_Error ("Lexer: Invalid string literal" ^ Lexing.lexeme lexbuf))}
+    | _ {raise (Syntax_Error ("Lexer: Invalid string literal" ^
+                                 Lexing.lexeme lexbuf))}
     (* | "\\u" {read_escape_u buf lexbuf}  TODO: implement UNICODE*) 
 and read_escape_x buf = parse
     | hexdigit as hex {Buffer.add_char buf hex; read_escape_x buf lexbuf}
-    | _ {raise (Syntax_Error ("Lexer: Invalid escape sequence, \\x have to be followed by hexidecimal digits"))}
+    | _ {raise (Syntax_Error ("Lexer: Invalid escape sequence, \
+                \\x have to be followed by hexidecimal digits"))}

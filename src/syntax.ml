@@ -82,7 +82,8 @@ and use_decl =
 and fn = fn_sig * block_expr
   [@@deriving show, eq]
 
-and fn_sig = fn_qualifiers option * string * generic_params option * fn_params option * fn_return_type option * where_clause option
+and fn_sig = fn_qualifiers option * string * generic_params option * 
+             fn_params option * fn_return_type option * where_clause option
 
 and fn_qualifiers = 
   | Const
@@ -118,8 +119,9 @@ and fn_return_type = type__
 
   (* 6.5 type aliases *)
 
-and type_alias = string * generic_params option * type_param_bounds * where_clause option 
-                        * (type__ * where_clause option) option (*type Point = (u8, u8)*)
+and type_alias = string * generic_params option * type_param_bounds * 
+                 where_clause option * (type__ * where_clause option) option 
+                 (*type Point = (u8, u8)*)
 
   (* 6.6 Structs *)
 
@@ -127,9 +129,11 @@ and struct__ =
   | Struct of struct_struct 
   | Tuple of tuple_struct
 
-and struct_struct = string * generic_params option * where_clause option * struct_fields option
+and struct_struct = string * generic_params option * where_clause option * 
+                    struct_fields option
 
-and tuple_struct = string * generic_params option * tuple_fields option * where_clause option
+and tuple_struct = string * generic_params option * tuple_fields option * 
+                   where_clause option
 
 and struct_fields = struct_field non_empty_list
 
@@ -146,8 +150,10 @@ and enum = string * generic_params option * where_clause option * enum_items
 and enum_items = enum_item non_empty_list
 
 and enum_item = 
-  | Enum_Struct of outer_attrs option * visibility option * string * struct_fields * enum_discriminant option
-  | Enum_Tuple of outer_attrs option * visibility option * string * tuple_fields * enum_discriminant option
+  | Enum_Struct of outer_attrs option * visibility option * string * 
+                   struct_fields * enum_discriminant option
+  | Enum_Tuple of outer_attrs option * visibility option * string * 
+                  tuple_fields * enum_discriminant option
 
 and enum_discriminant = expr 
 
@@ -156,6 +162,9 @@ and enum_discriminant = expr
 
 and outer_attr = Not_Implemented    (*#[ attr ]*)
 and inner_attribute = Not_Implemented    (*#![ attr ]*)
+
+(* 10. Type system *)
+
 
 (* 12. Names *)
   (* 12.4 Paths*)

@@ -10,12 +10,12 @@ let test_struct_def1 () =
     x: i32,
     y: i32,
   }" in
-  let expected  = (Vis_Item (None, (Some Pub),
-                             (Struct_Vis_Item
-                                (Struct
-                                   ("Point", None, None,
-                                    (Some [(None, None, "x", "i32"); (None, None, "y", "i32")]))))
-                            )) in
+  let field1 = (None, None, "x", "i32") in
+  let field2 = (None, None, "y", "i32") in
+  let fields = Some [field1; field2] in
+  let struct_def = ("Point", None, None, fields) in
+  let struct_item = Struct struct_def in
+  let expected = Vis_Item (None, Some Pub, Struct_Vis_Item struct_item) in
   Alcotest.(check item_testable) "same item" expected (parse_ast ipt_str);
 
   let ipt_str = "
@@ -47,8 +47,10 @@ let test_struct_def2 () =
   let ipt_str = "
   pub crate struct Point;
   " in 
-  let expected = (Vis_Item (None, (Some Pub_Crate), 
-                            (Struct_Vis_Item (Struct ("Point", None, None, None))))) in
+  let fields = None in
+  let struct_def = ("Point", None, None, fields) in
+  let struct_item = Struct struct_def in
+  let expected = Vis_Item (None, Some Pub_Crate, Struct_Vis_Item struct_item) in
   Alcotest.(check item_testable) "unit struct" expected (parse_ast ipt_str);  
   let ipt_str = "
   struct Point;
@@ -63,11 +65,14 @@ let test_struct_def3 () =
   let ipt_str = " 
   pub struct Point(i32, i32);
   " in 
-  let expected = (Vis_Item (None, (Some Pub), 
-                            (Struct_Vis_Item 
-                               (Tuple ("Point", None, 
-                                       (Some [(None, None, "i32"); (None, None, "i32")]), None)))))  in
-Alcotest.(check item_testable) "tuple struct" expected (parse_ast ipt_str)
+  (* Expected AST construction *)
+  let tuple_field1 = (None, None, "i32") in
+  let tuple_field2 = (None, None, "i32") in
+  let tuple_fields = Some [tuple_field1; tuple_field2] in
+  let tuple_def = ("Point", None, tuple_fields, None) in
+  let struct_item = Tuple tuple_def in
+  let expected = Vis_Item (None, Some Pub, Struct_Vis_Item struct_item) in
+  Alcotest.(check item_testable) "tuple struct" expected (parse_ast ipt_str)
 
 let test_str_lit1() = 
   (* string literal *)
@@ -123,9 +128,14 @@ let test_func_sig2() =
   (* function signature with parameters *) 
   let parse_ast = parse_ast fn_sig in
   let ipt_str = "fn foo(x: i32, y: i32) -> i32;" in
-  let expected = (None, "foo", None, Some (None, 
-                [Fn_Param_Pattern (None,("x", Type("i32"))); Fn_Param_Pattern (None,("y", Type("i32")))]
-                ), Some "i32", None) in
+  let param1_pattern = ("x", Type "i32") in
+  let param2_pattern = ("y", Type "i32") in
+  let fn_param1 = Fn_Param_Pattern (None, param1_pattern) in
+  let fn_param2 = Fn_Param_Pattern (None, param2_pattern) in
+  let fn_params_list = [fn_param1; fn_param2] in
+  let fn_params = (None, fn_params_list) in
+  let expected = 
+  (None, "foo", None, Some fn_params, Some "i32", None) in
   Alcotest.(check fn_sig_testable) "function signature with parameters" expected (parse_ast ipt_str);
   
   let ipt_str = "fn foo(x: i32, y: i32);" in
@@ -134,14 +144,25 @@ let test_func_sig2() =
                 ), None, None) in
   Alcotest.(check fn_sig_testable) "function signature with parameters without return type" expected (parse_ast ipt_str)
 
-(* let test_func_sig3() = 
+let test_func_sig3() = 
   (* test signatures with self *)
   let parse_ast = parse_ast fn_sig in
   let ipt_str = "fn foo(&self) -> i32;" in
-  let expected = (None, "foo", None, Some (Some (Ref_Only (Some mut, None)), 
-                [Fn_Param_Pattern (None,("self", Type(""))) ]
-                ), Some "i32", None) in
-  Alcotest.(check fn_sig_testable) "function signature with self" expected (parse_ast ipt_str); *)
+  let mut = () in
+  let self_param_v = Short_Hand(None, Ref_Only (Some mut, None)) in
+  let fn_params_v = (Some self_param_v, []) in
+  let expected = (None, "foo", None, Some fn_params_v, Some "i32", None) in
+  Alcotest.(check fn_sig_testable) "function signature with self" expected (parse_ast ipt_str);
+
+  (* don't use shorthand self, use typed self instead *)
+
+  let ipt_str = "fn foo(&mut self: i32) -> i32;" in
+  let mut = () in
+  let self_param_v = Typed_Self(None, (Some mut, "i32")) in
+  let fn_params_v = (Some self_param_v, []) in
+  let expected = (None, "foo", None, Some fn_params_v, Some "i32", None) in
+  Alcotest.(check fn_sig_testable) "function signature with self" expected (parse_ast ipt_str)
+
 
 let () = let open Alcotest in run "unit tests" [
     "struct-case", [test_case "struct struct" `Quick test_struct_def1;
@@ -154,7 +175,8 @@ let () = let open Alcotest in run "unit tests" [
     
     ];
     "function-signature", [test_case "function signature" `Quick test_func_sig1; 
-                          test_case "function signature with parameters" `Quick test_func_sig2
+                          test_case "function signature with parameters" `Quick test_func_sig2;
+                          test_case "function signature with self" `Quick test_func_sig3
     ]
 
   ]
