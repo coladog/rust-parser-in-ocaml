@@ -23,6 +23,7 @@
 %start <item> item
 %start <string_literal> string_literal
 %start <fn_sig> fn_sig
+%start <self_param> self_param 
 %%
 
 /* 2. Lexical structure */
@@ -71,9 +72,6 @@ self_param:
       { Typed_Self(None, ts) }
 
 shorthand_self:
-    // | r = option(AND) m = option(KW_MUT) KW_SELFVALUE {Ref_Only(r, m)}
-    // | rm = option(pair(AND, lifetime)) m = option(KW_MUT) KW_SELFVALUE 
-    //   {Ref_Lifetime(rm, m)}
     | r = option(ref_lifetime) m = option(KW_MUT) KW_SELFVALUE { 
         match r with
         | None -> Ref_Only(None, m)
@@ -81,8 +79,8 @@ shorthand_self:
         | Some (r, None) -> Ref_Only(Some r, m)
      }
 ref_lifetime:
-    | r = AND { (r, None)}
-    | r = AND l = lifetime { (r, Some l) }
+    | r = AND { print_endline "matched AND"; (r, None)}
+    | r = AND l = lifetime { print_endline "matched AND lifetime"; (r, Some l) }
 
 typed_self:
     | KW_SELFVALUE__COLON t = type__  { (None, t) }

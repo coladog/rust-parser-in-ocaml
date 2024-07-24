@@ -163,8 +163,8 @@ rule read_token = parse
 
     (* Used to fix SR/RR conflicts *)
 
-    | "self" whitespace+ ":" {KW_SELFVALUE__COLON}
-    | "mut" whitespace+ "self" whitespace+ ":" {KW_MUT__KW_SELFVALUE__COLON}
+    | "self" whitespace* ":" {KW_SELFVALUE__COLON}
+    | "mut" whitespace* "self" whitespace* ":" {KW_MUT__KW_SELFVALUE__COLON}
 
     (* Special chars *)
     | whitespace { next_line lexbuf; read_token lexbuf }
