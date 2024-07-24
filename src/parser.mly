@@ -141,7 +141,7 @@ tuple_field:
     | oa = option(outer_attrs) v = option(visibility) tid = type__ 
       { (None, v, tid) }
 
-
+    /* 8. Statement and expressions */
 
 /* 12. Names */
     /* 12.6 Visibility and privacy */

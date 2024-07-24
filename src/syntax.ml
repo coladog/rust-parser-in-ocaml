@@ -18,14 +18,21 @@ attribute -> attr
 declaration -> decl
 expression -> expr
 enumeration -> enum
+statement -> stmt
 *)
 (* Trying to support all features in https://github.com/SLMT/rust-snake/tree/master/src *)
 
 
 
 (* 2. Lexical structure *)
-(* 2.6 Tokens *)
+(* 2.6 Tokens *) 
 type string_literal = string
+[@@deriving show, eq]
+type byte_literal = string
+[@@deriving show, eq]
+type integer_literal = string 
+[@@deriving show, eq]
+type float_literal = string
 [@@deriving show, eq]
   (* 6. Items *)
   
@@ -56,7 +63,7 @@ and vis_item =
 
 and module__ =   
     | Module_Decl of safety * string
-    | Module_Def of safety * string * inner_attribute list * item list
+    | Module_Def of safety * string * inner_attrs option * item list
 
   (* 6.2 Extern crate declarations *)
 
@@ -160,8 +167,153 @@ and enum_discriminant = expr
 
 (* 7. Attributes *)
 
-and outer_attr = Not_Implemented    (*#[ attr ]*)
-and inner_attribute = Not_Implemented    (*#![ attr ]*)
+and outer_attr = not_implemented    (*#[ attr ]*)
+and inner_attr = not_implemented    (*#![ attr ]*)
+
+(* 8. Statements and expressions*)
+  (* 8.1 Statements *)
+
+and stmt = 
+  | Item of item 
+  | Let_Stmt of let_stmt
+  | Expr_Stmt of expr_stmt
+  | Macro_Invocation_Semi of macro_invocation_semi
+
+and let_stmt = outer_attrs option * pattern_no_top_alt * type__ option * (expr 
+              non_empty_list * block_expr option) option
+
+
+and expr_stmt = 
+  | Expr_Without_Block_Stmt of expr_without_block
+  | Expr_With_Block_Stmt of expr_with_block
+
+and macro_invocation_semi = not_implemented
+
+(* 8.2 Expressions *)
+
+and expr = 
+  | Expr_Without_Block of outer_attrs option * expr_without_block
+  | Expr_With_Block of outer_attrs option * expr_with_block
+
+and expr_without_block = 
+  | Literal_Expr of literal_expr
+  | Operator_Expr of operator_expr
+  | Array_Expr of array_expr 
+  | Tuple_Expr of tuple_expr
+  | Tuple_Index_Expr of tuple_index_expr
+  | Struct_Expr of struct_expr
+  | Call_Expr of call_expr
+  | Field_Access_Expr of field_access_expr
+
+and expr_with_block = 
+  | Block_Expr of block_expr
+  | If_Expr of if_expr
+  | If_Let_Expr of if_let_expr
+  | Unsafe_Block_Expr of unsafe_block_expr
+
+    (* 8.2.1 Literal expressions *)
+
+and literal_expr = 
+  | String_Literal of string_literal
+  | Byte_Literal of byte_literal
+  | Integer_Literal of integer_literal
+  | Float_Literal of float_literal
+  (* TODO: complete all literals: https://doc.rust-lang.org/reference/expressions/literal-expr.html*)
+
+    (* 8.2.2 Path expressions *)
+
+    (* 8.2.3 Block expressions *)
+
+and block_expr = inner_attrs option * stmts option 
+
+and stmts = stmt non_empty_list * expr_without_block option
+
+and unsafe_block_expr = block_expr
+
+and async_block_expr = move option * block_expr
+
+      (* 8.2.4 Operator expressions *)
+
+      (* Not completely the same as the structure in https://doc.rust-lang.org/reference/expressions/operator-expr.html *)
+and bin_operators = 
+  | Add | Sub | Mul | Div | Rem | Bit_And | Bit_Or | BitXor | Shl | Shr
+  | Eq | Neq | Lt | Le | Gt | Ge
+  | Lazy_Or | Lazy_And
+  | Assign | Add_Assign | Sub_Assign | Mul_Assign | Div_Assign | Rem_Assign
+  | And_Assign | Or_Assign | Xor_Assign | Shl_Assign | Shr_Assign
+
+and unary_operators = 
+  | Neg | Not | Deref | Ref | Mut_Ref | Error_Propagation
+
+and operator_expr = 
+  | Unary of unary_operators * expr
+  | Binary of bin_operators * expr * expr
+  | Cast of expr * type_no_bounds
+
+      (* 8.2.5 Grouped expressions *)
+      (* skiped, just add parathensis around *)
+
+      (* 8.2.6 Array and index expression *)
+
+and array_expr = 
+  | Exprs of expr list
+  | Repeat of expr * expr
+
+and index_expr = expr * expr
+      
+      (* 8.2.7 Tuple and index expression *)
+
+and tuple_expr = expr list 
+
+and tuple_index = integer_literal
+
+and tuple_index_expr = expr * tuple_index
+
+      (* 8.2.8 Struct expressions *)
+
+and struct_expr = 
+  | Struct_Expr_Struct of struct_expr_struct
+  | Struct_Expr_Tuple of struct_expr_tuple
+  | Struct_Expr_Unit of struct_expr_unit
+
+and struct_expr_struct = struct_expr_field list * struct_base option
+
+and struct_expr_field = 
+  | With_Expr_Ident of outer_attrs option * string * expr
+  | With_Expr_Tuple_Index of outer_attrs option * tuple_index * expr
+  | Without_Expr of string 
+
+and struct_base = expr
+
+and struct_expr_tuple = path_in_expr * expr list 
+
+and struct_expr_unit = path_in_expr
+
+      (* 8.2.9 Call expressions *)
+
+and call_expr = expr * expr list
+
+      (* 8.2.10 Method call expressions *)
+
+      (* TODO *)
+
+      (* 8.2.11 Field access expressions *)
+
+and field_access_expr = expr * string
+
+      (* 8.2.15 If and if let expressions *)
+
+and if_expr = expr * block_expr * else_expr
+
+and else_expr = 
+  | Else_If of if_expr 
+  | Else_block of block_expr 
+  | Else_If_Let of if_let_expr
+
+and if_let_expr = not_implemented
+
+(* 9. Patterns *)
+  
 
 (* 10. Type system *)
 
@@ -193,8 +345,9 @@ and safety = unsafe option
 and mut = unit
 and mutability = mut option
 and reference = unit
+and move = unit
 and outer_attrs = outer_attr list (* an empty list is #[], a None is just nothing *)
-
+and inner_attrs = inner_attr list
 and enumeration = not_implemented
 and union = not_implemented
 and constant_item = not_implemented
@@ -204,9 +357,9 @@ and implementation = not_implemented
 and extern_block = not_implemented
 and generic_params = not_implemented
 and where_clause = not_implemented
-and block_expr = not_implemented
 and lifetime = not_implemented
 and type__ = not_implemented
+and type_no_bounds = not_implemented
 and pattern_no_top_alt = not_implemented
 and type_param_bounds = not_implemented
-and expr = not_implemented
+and path_in_expr = not_implemented
