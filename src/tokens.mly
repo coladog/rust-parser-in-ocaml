@@ -112,7 +112,9 @@
 %token QUOTE_ESC_SGL QUOTE_ESC_DBL // quote escape single and double 
 %token ASCII_ESC_X ASCII_ESC_N ASCII_ESC_R ASCII_ESC_T ASCII_ESC_SLASH ASCII_ESC_0
 %token UNICODE_ESC
-%token <string> STR_LIT // string literal
+
+%token <string> STR_LIT FLOAT_LIT CHAR_LIT
+%token <string> BIN_INT_LIT OCT_INT_LIT DEC_INT_LIT HEX_INT_LIT
 
 %token LIFETIME_QUOTE
 

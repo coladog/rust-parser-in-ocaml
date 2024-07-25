@@ -1,31 +1,26 @@
 (ocamllex lexer)
 
-
 (menhir
  (modules tokens)
  (flags --only-tokens)
- (explain false)
-)
+ (explain false))
 
 (menhir
  (modules tokens parser)
  (merge_into parser)
  (flags --external-tokens Tokens)
- (explain true)
- 
- )
-
+ (explain true))
 
 (library
- (preprocess (pps ppx_deriving.show ppx_deriving.eq))
- (modules syntax lexer tokens parser) 
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq))
+ (modules syntax lexer tokens parser)
  (name rust_parser)
- (wrapped false)
-)
+ (wrapped false))
 
 (env
  (dev
   (flags
-   (:standard -w -27 -w -33)
-   )))
+   (:standard -w -27 -w -33))))
+
 ; suppressing unused token warnings
