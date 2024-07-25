@@ -257,15 +257,15 @@ let test_float_literal1() =
 	List.iter (fun x -> 
 	          Alcotest.(check bool) 
 						"invalid float literal" true (parse_ast_ x <> x)) lits_invalid
-	
 
+						
 let () = let open Alcotest in run "unit tests" [
 		"struct-case", [test_case "struct struct" `Quick test_struct_def1;
 										test_case "unit structs" `Quick test_struct_def2;
 										test_case "tuple structs" `Quick test_struct_def3;
 									 ];
 		"string-literal", [test_case "string literal" `Quick test_str_lit1;
-											test_case "string literal with newline" `Quick test_str_lit2;
+											test_case "string literal  newline" `Quick test_str_lit2;
 											test_case "string literal with newline" `Quick test_str_lit3;
 		
 		];

@@ -184,9 +184,10 @@ and stmt =
 	| Expr_Stmt of expr_stmt
 	| Macro_Invocation_Semi of macro_invocation_semi
 
-and let_stmt = outer_attrs option * pattern_no_top_alt * type__ option * (expr 
-							non_empty_list * block_expr option) option
+and let_stmt = outer_attrs option * pattern_no_top_alt * type__ option * 
+							 let_stmt_assignment option
 
+and let_stmt_assignment = expr * block_expr option 
 
 and expr_stmt = 
 	| Expr_Without_Block_Stmt of expr_without_block
@@ -242,7 +243,7 @@ and unsafe_block_expr = block_expr
 
 			(* Not completely the same as the structure in https://doc.rust-lang.org/reference/expressions/operator-expr.html *)
 and bin_opor = 
-	| Add | Sub | Mul | Div | Rem | Bit_And | Bit_Or | BitXor | Shl | Shr
+	| Add | Sub | Mul | Div | Rem | Bit_And | Bit_Or | Bit_Xor | Shl | Shr
 	| Eq | Ne | Lt | Le | Gt | Ge
 	| Lazy_Or | Lazy_And
 	| Assign | Add_Assign | Sub_Assign | Mul_Assign | Div_Assign | Rem_Assign
@@ -313,7 +314,7 @@ and if_expr = expr * block_expr * else_expr option
 (* note that the first expr cannot be struct expr *)
 	
 and else_expr = 
-	| Else_block of block_expr 
+	| Else_Block of block_expr 
 	| Else_If of if_expr 
 	| Else_If_Let of if_let_expr
 

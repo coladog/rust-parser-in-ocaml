@@ -1,6 +1,7 @@
 %{
 	open Syntax 
 	open Tokens
+	exception Parser_Error of string
 %}
 
 // precedence and associativity
@@ -26,6 +27,8 @@
 %start <float_literal> float_literal
 %start <fn_sig> fn_sig
 %start <self_param> self_param 
+%start <op_expr> op_expr
+%start <stmt> stmt
 %%
 
 /* 2. Lexical structure */
@@ -167,9 +170,32 @@ stmt:
 let_stmt: 
 	| oa = option(outer_attrs) KW_LET p = pattern_no_top_alt 
 		t = option(preceded(COLON, type__)) 
-		option(EQ e = expr option(KW_ELSE e2 = block_expr {}) {}) SEMI
-		{}
+		a = option(let_stmt_assignment) SEMI
+		{
+			(None, p, t, a)
+		}
 
+let_stmt_assignment:
+	| EQ e = expr KW_ELSE e2 = option(preceded(KW_ELSE, block_expr)) { 
+		(* When an else block is specified, 
+			 the Expression must not be a LazyBooleanExpression, or end with a } *)
+		if e2 = None then 
+			(e, None)
+		else 
+			match e with
+				| Expr_Without_Block(_, (Op_Expr (Binary (_, opor, _)))) -> (
+					match opor with 
+						| Lazy_And | Lazy_Or -> 
+							raise (Parser_Error "Lazy boolean operator 
+																		not allowed in let statement")
+						| _ -> (e, e2)
+					) 
+				| Expr_With_Block(_, _) -> 
+					raise (Parser_Error "Expression ending with } 
+								not allowed in let statement")
+				| _ -> (e, e2)
+	}
+	
 expr_stmt: 
 	| e = expr_without_block SEMI {Expr_Without_Block_Stmt e}
 	| e = expr_with_block option(SEMI) {Expr_With_Block_Stmt e}
@@ -207,7 +233,7 @@ literal_expr:
 
 block_expr: 
 	| LBRACE ia = inner_attrs s = list(stmt) e = option(expr_without_block) RBRACE 
-	  { (ia, s, e) } 
+	  { (None, s, e) } 
 	
 async_block_expr: 
 	| KW_ASYNC m = option(KW_MOVE) b = block_expr { (m, b) }
@@ -254,7 +280,7 @@ group_expr:
 
 array_expr: 
 	| LBRACKET ls = separated_list(COMMA, expr) option(COMMA) RBRACKET 
-	  { Array_Expr ls }
+	  { Exprs ls }
 	| LBRACKET e = expr SEMI rep = expr RBRACKET { Repeat (e, rep) }
 
 index_expr: 
@@ -265,8 +291,11 @@ index_expr:
 tuple_expr: 
 	| LPAREN ls = separated_list(COMMA, expr) option(COMMA) RPAREN {ls}
 
+tuple_index: 
+	| i = integer_literal { i }
+
 tuple_index_expr: 
-	| e = expr DOT i = integer_literal { (e, i) }
+	| e = expr DOT i = tuple_index { (e, i) }
 
 			/* 8.2.8 Struct expressions */
 
@@ -284,12 +313,12 @@ struct_expr_struct:
 		{ (p, fs, Some b) }	
 
 struct_expr_field: 
-	| oa = outer_attrs  id = IDENT COLON e = expr
-		{ With_Expr_Ident (oa, id, e)}
-	| oa = outer_attrs  t  = tuple_index_expr COLON e = expr 
-		{ With_Expr_Tuple_Index (oa, t, e)}
+	| oa = outer_attrs id = IDENT COLON e = expr
+		{ With_Expr_Ident (None, id, e)}
+	| oa = outer_attrs  t  = tuple_index COLON e = expr 
+		{ With_Expr_Tuple_Index (None, t, e)}
 	| oa = outer_attrs id = IDENT
-	 	{ Without_Expr (oa, id) }
+	 	{ Without_Expr (None, id) }
 
 struct_base:
 	| DOTDOTDOT e = expr { e }
@@ -317,8 +346,8 @@ if_expr:
 	| KW_IF e = expr b = block_expr e2 = option(else_expr) {	
 			(* making sure that expr is not struct_expr *)
 			match e with
-				| Struct_Expr_Struct _ -> 
-					raise (Error "Struct expression not allowed in if expression")
+				| Expr_Without_Block (_, (Struct_Expr _)) -> 
+					raise (Parser_Error "Struct expression not allowed in if expression")
 				| _ -> (e, b, e2)
 		}
 
@@ -337,10 +366,10 @@ scrutinee:
 	| e = expr {
 		(* make sure that the expr is not lazy boolean *) 
 		match e with 
-			| Op_Expr (Binary (_, opor, _)) -> (
+			| Expr_Without_Block(_, (Op_Expr (Binary (_, opor, _)))) -> (
 				match opor with 
 					| Lazy_And | Lazy_Or -> 
-						raise (Error "Lazy boolean operator 
+						raise (Parser_Error "Lazy boolean operator 
 																	not allowed in match expression")
 					| _ -> e
 				) 
