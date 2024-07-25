@@ -227,26 +227,36 @@ let test_int_literals1() =
 	(* test integer literals *)
 	let parse_ast_ = parse_ast integer_literal in
 	let expected = Dec_Int_Lit "123" in
-	Alcotest.(check int_lit_testable) "dec integer literal" expected (parse_ast_ "123");
+	Alcotest.(check int_lit_testable)
+	"dec integer literal" expected (parse_ast_ "123");
 
 	let expected = Bin_Int_Lit "0b101" in
-	Alcotest.(check int_lit_testable) "bin integer literal" expected (parse_ast_ "0b101");
+	Alcotest.(check int_lit_testable) 
+	"bin integer literal" expected (parse_ast_ "0b101");
 	
 	let expected = Oct_Int_Lit "0o123_456" in
-	Alcotest.(check int_lit_testable) "oct integer literal" expected (parse_ast_ "0o123_456");
+	Alcotest.(check int_lit_testable) 
+	"oct integer literal" expected (parse_ast_ "0o123_456");
 	
 	let expected = Hex_Int_Lit "0xFFF_AAA_BB_CCC_u123" in
-	Alcotest.(check int_lit_testable) "hex integer literal" expected (parse_ast_ "0xFFF_AAA_BB_CCC_u123")
+	Alcotest.(check int_lit_testable) 
+	"hex integer literal" expected (parse_ast_ "0xFFF_AAA_BB_CCC_u123")
 
 let test_float_literal1() = 
 	(* test float literals *)
 	let parse_ast_ = parse_ast float_literal in
-	let lits = ["123.456"; "123."; "123e10"; "123.0f64"; "12E+99_f64"; "0.1f32"; "114E-514"] in
-	List.iter (fun x -> Alcotest.(check string) "float literal" x (parse_ast_ x)) lits;
+	let lits = ["123.456"; "123."; "123e10"; "123.0f64"; 
+							"12E+99_f64"; "0.1f32"; "114E-514"] in
+	List.iter (fun x -> 
+			      Alcotest.(check string) 
+						"float literal" x (parse_ast_ x)) lits;
 
-	let lits_invalid = ["123.456.789"; "123e10.0"; "123.0f64.0"; "12E+99_f64.0"; "0.1f32.0"; "114E-514.0"] in
+	let lits_invalid = ["123.456.789"; "123e10.0"; "123.0f64.0"; 
+											"12E+99_f64.0"; "0.1f32.0"; "114E-514.0"] in
 	(* should not be equal *)
-	List.iter (fun x -> Alcotest.(check bool) "invalid float literal" true (parse_ast_ x <> x)) lits_invalid
+	List.iter (fun x -> 
+	          Alcotest.(check bool) 
+						"invalid float literal" true (parse_ast_ x <> x)) lits_invalid
 	
 
 let () = let open Alcotest in run "unit tests" [

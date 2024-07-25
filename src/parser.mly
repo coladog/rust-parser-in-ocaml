@@ -72,7 +72,8 @@ fn_abi:
 
 fn_params:
 	| sp = self_param ioption(COMMA) { (Some sp, []) }
-	| sp = ioption(terminated(self_param, COMMA)) fps = separated_nonempty_list(COMMA, fn_param) { (sp, fps) }
+	| sp = ioption(terminated(self_param, COMMA)) 
+		fps = separated_nonempty_list(COMMA, fn_param) { (sp, fps) }
 // TODO: figure out if it is allowed for list to have a trailing comma
 // have to use ioption to make it pass compile
 
@@ -153,16 +154,198 @@ tuple_field:
 	  { (None, v, tid) }
 
 	/* 8. Statement and expressions */
+		/* 8.1 Statements */
+
+stmt: 
+	| SEMI {Semi}
+	| i = item {Item i}
+	| l = let_stmt {Let_Stmt l}
+	| e = expr_stmt {Expr_Stmt e}
+	// TODO: macro invocation stmt
+
+
+let_stmt: 
+	| oa = option(outer_attrs) KW_LET p = pattern_no_top_alt 
+		t = option(preceded(COLON, type__)) 
+		option(EQ e = expr option(KW_ELSE e2 = block_expr {}) {}) SEMI
+		{}
+
+expr_stmt: 
+	| e = expr_without_block SEMI {Expr_Without_Block_Stmt e}
+	| e = expr_with_block option(SEMI) {Expr_With_Block_Stmt e}
 
 		/* 8.2 Expressions */
+expr: 
+	| oa = outer_attrs e = expr_without_block { Expr_Without_Block (None, e) }
+	| oa = outer_attrs b = expr_with_block { Expr_With_Block (None, b) }
 
-// expr_without_block: 
-// 	| 
+expr_without_block: 
+	| l = literal_expr { Literal_Expr l }
+	| o = op_expr { Op_Expr o }
+	| a = array_expr { Array_Expr a }
+	| t = tuple_expr { Tuple_Expr t }
+	| t = tuple_index_expr { Tuple_Index_Expr t }
+	| s = struct_expr { Struct_Expr s }
+	| c = call_expr { Call_Expr c }
+	| f = field_access_expr { Field_Access_Expr f }
+
+expr_with_block:
+	| b = block_expr { Block_Expr b }
+	| i = if_expr { If_Expr i }
+	| i = if_let_expr { If_Let_Expr i }
+	| u = unsafe_block_expr { Unsafe_Block_Expr u }
+
+			/* 8.2.1 Literal expressions */
+
+literal_expr: 
+	| s = string_literal { String_Literal s }
+	// TODO | b = byte_literal { Byte_Literal b }
+	| i = integer_literal { Integer_Literal i }
+	| f = float_literal { Float_Literal f }
+
+			/* 8.2.3 Block expressions */
+
+block_expr: 
+	| LBRACE ia = inner_attrs s = list(stmt) e = option(expr_without_block) RBRACE 
+	  { (ia, s, e) } 
+	
+async_block_expr: 
+	| KW_ASYNC m = option(KW_MOVE) b = block_expr { (m, b) }
+
+const_block_expr:
+	| KW_CONST b = block_expr { b }
+
+unsafe_block_expr:
+	| KW_UNSAFE b = block_expr { b }
 
 			/* 8.2.4 Operator expressions */
 
+bin_opor:
+	| PLUS { Add }      | MINUS { Sub } | STAR { Mul } | SLASH { Div } | PERCENT { Rem }
+	| CARET { Bit_Xor } | AND { Bit_And }
+	| OR { Bit_Or }     | SHL { Shl }   | SHR { Shr }
+	| EQEQ { Eq }       | NE { Ne }     | LT { Lt }    | LE { Le }
+	| GT { Gt }         | GE { Ge }
+	| ANDAND { Lazy_And }    | OROR { Lazy_Or }
+	| PLUSEQ { Add_Assign }  | MINUSEQ { Sub_Assign } | STAREQ { Mul_Assign }
+	| SLASHEQ { Div_Assign } | PERCENTEQ { Rem_Assign }
+	| ANDEQ { And_Assign }   | OREQ { Or_Assign }     | CARETEQ { Xor_Assign }
+	| SHLEQ { Shl_Assign }   | SHREQ { Shr_Assign }
 
+un_opor:
+	| MINUS { Neg }
+	| NOT { Not }
+	| STAR { Deref }
+	| AND { Ref }
+	| AND KW_MUT { Mut_Ref }
+	| QUESTION { Error_Propagation }
 
+op_expr:
+	| u = un_opor e = expr { Unary (u, e)}
+	| e1 = expr b = bin_opor e2 = expr { Binary (e1, b, e2) }
+	| e = expr KW_AS t = type_no_bounds { Cast (e, t) }
+
+			/* 8.2.5 Grouped expressions */
+
+group_expr: 
+	| LPAREN e = expr RPAREN { e }
+
+			/* 8.2.6 Array and index expressions */
+
+array_expr: 
+	| LBRACKET ls = separated_list(COMMA, expr) option(COMMA) RBRACKET 
+	  { Array_Expr ls }
+	| LBRACKET e = expr SEMI rep = expr RBRACKET { Repeat (e, rep) }
+
+index_expr: 
+	| e = expr LBRACKET i = expr RBRACKET { (e, i) }
+
+			/* 8.2.7 Tuple expressions */
+
+tuple_expr: 
+	| LPAREN ls = separated_list(COMMA, expr) option(COMMA) RPAREN {ls}
+
+tuple_index_expr: 
+	| e = expr DOT i = integer_literal { (e, i) }
+
+			/* 8.2.8 Struct expressions */
+
+struct_expr: 
+	| s = struct_expr_struct { Struct_Expr_Struct s }
+	| t = struct_expr_tuple { Struct_Expr_Tuple t }
+	| u = struct_expr_unit { Struct_Expr_Unit u }
+
+struct_expr_struct:
+	| p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
+		option(COMMA) RBRACE 
+		{ (p, fs, None) }
+	| p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
+		COMMA b = struct_base option(COMMA) RBRACE 
+		{ (p, fs, Some b) }	
+
+struct_expr_field: 
+	| oa = outer_attrs  id = IDENT COLON e = expr
+		{ With_Expr_Ident (oa, id, e)}
+	| oa = outer_attrs  t  = tuple_index_expr COLON e = expr 
+		{ With_Expr_Tuple_Index (oa, t, e)}
+	| oa = outer_attrs id = IDENT
+	 	{ Without_Expr (oa, id) }
+
+struct_base:
+	| DOTDOTDOT e = expr { e }
+
+struct_expr_tuple: 
+	| p = path_in_expr t = tuple_expr { (p, t) }
+
+struct_expr_unit: 
+	| p = path_in_expr { p }
+
+			/* 8.2.9 Call expressions */
+
+call_expr: 
+	| e = expr LPAREN ls = separated_list(COMMA, expr) option(COMMA) RPAREN 
+	  { (e, ls) }
+
+			/* 8.2.15 Field access expressions */
+
+field_access_expr: 
+	| e = expr DOT id = IDENT { (e, id) }
+
+			/* 8.2.15 If and if let expressions */
+			
+if_expr: 
+	| KW_IF e = expr b = block_expr e2 = option(else_expr) {	
+			(* making sure that expr is not struct_expr *)
+			match e with
+				| Struct_Expr_Struct _ -> 
+					raise (Error "Struct expression not allowed in if expression")
+				| _ -> (e, b, e2)
+		}
+
+else_expr: 
+	| KW_ELSE b = block_expr { Else_Block b }
+	| KW_ELSE e = if_expr { Else_If e }
+	| KW_ELSE e = if_let_expr { Else_If_Let e } 
+
+if_let_expr: 
+	| KW_IF KW_LET p = pattern EQ s = scrutinee b = block_expr e = option(else_expr) 
+	  { (p, s, b, e) }
+
+			/* 8.2.16 Match expressions */
+
+scrutinee: 
+	| e = expr {
+		(* make sure that the expr is not lazy boolean *) 
+		match e with 
+			| Op_Expr (Binary (_, opor, _)) -> (
+				match opor with 
+					| Lazy_And | Lazy_Or -> 
+						raise (Error "Lazy boolean operator 
+																	not allowed in match expression")
+					| _ -> e
+				) 
+			| _ -> e
+	}
 
 /* 12. Names */
 	/* 12.6 Visibility and privacy */
@@ -181,7 +364,15 @@ where_clause:
 	| IMPOSSIBLE_TO_MATCH2 {}
 outer_attrs: 
 	| IMPOSSIBLE_TO_MATCH3 {}
+inner_attrs: 
+	| IMPOSSIBLE_TO_MATCH4 {}
 lifetime: 
 	| LIFETIME_QUOTE id = IDENT { id }
 pattern_no_top_alt: 
+	| id = IDENT {id}
+path_in_expr: 
+	| id = IDENT {id}
+pattern: 
+	| id = IDENT {id}
+type_no_bounds: 
 	| id = IDENT {id}

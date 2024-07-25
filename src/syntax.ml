@@ -178,6 +178,7 @@ and inner_attr = not_implemented    (*#![ attr ]*)
 	(* 8.1 Statements *)
 
 and stmt = 
+	| Semi
 	| Item of item 
 	| Let_Stmt of let_stmt
 	| Expr_Stmt of expr_stmt
@@ -201,7 +202,7 @@ and expr =
 
 and expr_without_block = 
 	| Literal_Expr of literal_expr
-	| Operator_Expr of operator_expr
+	| Op_Expr of op_expr
 	| Array_Expr of array_expr 
 	| Tuple_Expr of tuple_expr
 	| Tuple_Index_Expr of tuple_index_expr
@@ -227,31 +228,32 @@ and literal_expr =
 		(* 8.2.2 Path expressions *)
 
 		(* 8.2.3 Block expressions *)
+		
+and block_expr = inner_attrs option * stmt list * expr_without_block option
 
-and block_expr = inner_attrs option * stmts option 
+and async_block_expr = move option * block_expr
 
-and stmts = stmt non_empty_list * expr_without_block option
+and const_block_expr = block_expr
 
 and unsafe_block_expr = block_expr
 
-and async_block_expr = move option * block_expr
 
 			(* 8.2.4 Operator expressions *)
 
 			(* Not completely the same as the structure in https://doc.rust-lang.org/reference/expressions/operator-expr.html *)
-and bin_ops = 
+and bin_opor = 
 	| Add | Sub | Mul | Div | Rem | Bit_And | Bit_Or | BitXor | Shl | Shr
-	| Eq | Neq | Lt | Le | Gt | Ge
+	| Eq | Ne | Lt | Le | Gt | Ge
 	| Lazy_Or | Lazy_And
 	| Assign | Add_Assign | Sub_Assign | Mul_Assign | Div_Assign | Rem_Assign
 	| And_Assign | Or_Assign | Xor_Assign | Shl_Assign | Shr_Assign
 
-and un_ops = 
+and un_opor = 
 	| Neg | Not | Deref | Ref | Mut_Ref | Error_Propagation
 
-and operator_expr = 
-	| Unary of un_ops * expr
-	| Binary of bin_ops * expr * expr
+and op_expr = 
+	| Unary of un_opor * expr
+	| Binary of expr * bin_opor * expr
 	| Cast of expr * type_no_bounds
 
 			(* 8.2.5 Grouped expressions *)
@@ -280,12 +282,12 @@ and struct_expr =
 	| Struct_Expr_Tuple of struct_expr_tuple
 	| Struct_Expr_Unit of struct_expr_unit
 
-and struct_expr_struct = struct_expr_field list * struct_base option
+and struct_expr_struct = path_in_expr * struct_expr_field list * struct_base option
 
 and struct_expr_field = 
 	| With_Expr_Ident of outer_attrs option * string * expr
 	| With_Expr_Tuple_Index of outer_attrs option * tuple_index * expr
-	| Without_Expr of string 
+	| Without_Expr of outer_attrs option * string 
 
 and struct_base = expr
 
@@ -307,17 +309,24 @@ and field_access_expr = expr * string
 
 			(* 8.2.15 If and if let expressions *)
 
-and if_expr = expr * block_expr * else_expr
-
+and if_expr = expr * block_expr * else_expr option
+(* note that the first expr cannot be struct expr *)
+	
 and else_expr = 
-	| Else_If of if_expr 
 	| Else_block of block_expr 
+	| Else_If of if_expr 
 	| Else_If_Let of if_let_expr
 
-and if_let_expr = not_implemented
+and if_let_expr = pattern * scrutinee * block_expr * else_expr option
+(* except lazy boolean operator exprs for scrutinee *)
+
+			(* 8.2.16 Match expressions *)
+
+and scrutinee = expr (* expr except struct expression *)
 
 (* 9. Patterns *)
-	
+
+and pattern = not_implemented
 
 (* 10. Type system *)
 
