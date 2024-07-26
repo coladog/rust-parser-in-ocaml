@@ -6,6 +6,7 @@
 
 // precedence and associativity
 // ref: https://doc.rust-lang.org/reference/expressions.html
+%nonassoc OPTION_NONE LOWEST_PRIORITY
 
 %nonassoc UMINUS UPLUS UNOT UREF UMUTREF
 
@@ -20,8 +21,16 @@
 %left SHL SHR
 %nonassoc QUESTION
 
-%nonassoc OPTION_NONE
-%nonassoc OPTION_SOME
+
+%nonassoc THEN // mark the if branch with this so that it have lower precedence than else
+%nonassoc KW_ELSE
+
+%nonassoc LPAREN LBRACE LBRACKET
+%nonassoc RPAREN RBRACE RBRACKET
+
+%right SEMI COMMA 
+
+%nonassoc OPTION_SOME HIGHEST_PRIORITY 
 
 // remove for productions (the start symbols)
 %start <item> item
@@ -30,9 +39,13 @@
 %start <float_literal> float_literal
 %start <fn_sig> fn_sig
 %start <self_param> self_param 
-%start <op_expr> op_expr
-%start <stmt> stmt
+// %start <op_expr> op_expr
+// %start <stmt> stmt
+%start <struct_expr_struct> struct_expr_struct
 %%
+
+// separated_nonempty_list(sep, X):
+// 	| l = separated_nonempty_list(sep, X) { l }
 
 /* 2. Lexical structure */
 	/* 2.6 Tokens */
@@ -176,10 +189,10 @@ let_stmt:
 		a = option(let_stmt_assignment) SEMI
 		{
 			(None, p, t, a)
-		}
+		} 
 
 let_stmt_assignment:
-	| EQ e = expr KW_ELSE e2 = option(preceded(KW_ELSE, block_expr)) { 
+	| EQ e = expr e2 = option(preceded(KW_ELSE, block_expr)) { 
 		(* When an else block is specified, 
 			 the Expression must not be a LazyBooleanExpression, or end with a } *)
 		if e2 = None then 
@@ -198,10 +211,13 @@ let_stmt_assignment:
 								not allowed in let statement")
 				| _ -> (e, e2)
 	}
-	
+
+
+// [1,2,3] [1,2,3,]
+// (1,2,3,)
 expr_stmt: 
 	| e = expr_without_block SEMI {Expr_Without_Block_Stmt e}
-	| e = expr_with_block SEMI {Expr_With_Block_Stmt e} %prec OPTION_SOME
+	| e = expr_with_block SEMI {Expr_With_Block_Stmt e}
 	| e = expr_with_block {Expr_With_Block_Stmt e} %prec OPTION_NONE
 
 		/* 8.2 Expressions */
@@ -310,17 +326,17 @@ struct_expr:
 
 struct_expr_struct:
 	| p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
-		option(COMMA) RBRACE 
+		ioption(COMMA) RBRACE 
 		{ (p, fs, None) }
-	| p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
-		COMMA b = struct_base option(COMMA) RBRACE 
-		{ (p, fs, Some b) }	
+	// | p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
+	// 	COMMA b = struct_base ioption(COMMA) RBRACE 
+	// 	{ (p, fs, Some b) }	
 
 struct_expr_field: 
-	| oa = outer_attrs id = IDENT COLON e = expr
-		{ With_Expr_Ident (None, id, e)}
-	| oa = outer_attrs  t  = tuple_index COLON e = expr 
-		{ With_Expr_Tuple_Index (None, t, e)}
+	// | oa = outer_attrs id = IDENT COLON e = expr
+	// 	{ With_Expr_Ident (None, id, e)}
+	// | oa = outer_attrs  t  = tuple_index COLON e = expr 
+	// 	{ With_Expr_Tuple_Index (None, t, e)}
 	| oa = outer_attrs id = IDENT
 	 	{ Without_Expr (None, id) }
 
@@ -347,13 +363,13 @@ field_access_expr:
 			/* 8.2.15 If and if let expressions */
 			
 if_expr: 
-	| KW_IF e = expr b = block_expr e2 = option(else_expr) {	
+	| KW_IF e = expr b = block_expr e2 = ioption(else_expr) {	
 			(* making sure that expr is not struct_expr *)
 			match e with
 				| Expr_Without_Block (_, (Struct_Expr _)) -> 
 					raise (Parser_Error "Struct expression not allowed in if expression")
 				| _ -> (e, b, e2)
-		}
+		} %prec THEN
 
 else_expr: 
 	| KW_ELSE b = block_expr { Else_Block b }
@@ -361,8 +377,8 @@ else_expr:
 	| KW_ELSE e = if_let_expr { Else_If_Let e } 
 
 if_let_expr: 
-	| KW_IF KW_LET p = pattern EQ s = scrutinee b = block_expr e = option(else_expr) 
-	  { (p, s, b, e) }
+	| KW_IF KW_LET p = pattern EQ s = scrutinee b = block_expr e = ioption(else_expr) 
+	  { (p, s, b, e) } %prec THEN
 
 			/* 8.2.16 Match expressions */
 
@@ -400,6 +416,15 @@ separated_nonempty_list_option_trailing(separator, X):
 separated_list_option_trailing(separator, X):
 | xs = loption(separated_nonempty_list_option_trailing(separator, X))
 	{ xs }
+
+option_pref_some(X):
+  /* nothing */
+    { None } %prec OPTION_NONE
+    [@name none]
+| x = X
+    { Some x } 
+    [@name some]
+
 
 
 /* -2. TODO: not implemented */
