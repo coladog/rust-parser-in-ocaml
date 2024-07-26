@@ -20,6 +20,9 @@
 %left SHL SHR
 %nonassoc QUESTION
 
+%nonassoc OPTION_NONE
+%nonassoc OPTION_SOME
+
 // remove for productions (the start symbols)
 %start <item> item
 %start <string_literal> string_literal
@@ -198,7 +201,8 @@ let_stmt_assignment:
 	
 expr_stmt: 
 	| e = expr_without_block SEMI {Expr_Without_Block_Stmt e}
-	| e = expr_with_block option(SEMI) {Expr_With_Block_Stmt e}
+	| e = expr_with_block SEMI {Expr_With_Block_Stmt e} %prec OPTION_SOME
+	| e = expr_with_block {Expr_With_Block_Stmt e} %prec OPTION_NONE
 
 		/* 8.2 Expressions */
 expr: 
@@ -279,7 +283,7 @@ group_expr:
 			/* 8.2.6 Array and index expressions */
 
 array_expr: 
-	| LBRACKET ls = separated_list(COMMA, expr) option(COMMA) RBRACKET 
+	| LBRACKET ls = separated_list_option_trailing(COMMA, expr) RBRACKET 
 	  { Exprs ls }
 	| LBRACKET e = expr SEMI rep = expr RBRACKET { Repeat (e, rep) }
 
@@ -289,7 +293,7 @@ index_expr:
 			/* 8.2.7 Tuple expressions */
 
 tuple_expr: 
-	| LPAREN ls = separated_list(COMMA, expr) option(COMMA) RPAREN {ls}
+	| LPAREN ls = separated_list_option_trailing(COMMA, expr) RPAREN {ls}
 
 tuple_index: 
 	| i = integer_literal { i }
@@ -383,6 +387,20 @@ visibility:
 	| KW_PUB KW_CRATE { Pub_Crate }
 	| KW_PUB KW_SUPER { Pub_Super }
 	// TODO: Pub_Path
+
+
+separated_nonempty_list_option_trailing(separator, X):
+|  x = X
+    { [ x ] }
+    [@name one]
+| x = X; separator; xs = separated_nonempty_list(separator, X); option(separator)
+    { x :: xs }
+    [@name more]
+
+separated_list_option_trailing(separator, X):
+| xs = loption(separated_nonempty_list_option_trailing(separator, X))
+	{ xs }
+
 
 /* -2. TODO: not implemented */
 type__: 
