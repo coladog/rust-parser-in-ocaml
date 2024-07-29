@@ -28,8 +28,7 @@
 %nonassoc LPAREN LBRACE LBRACKET
 %nonassoc RPAREN RBRACE RBRACKET
 
-%right SEMI COMMA 
-
+%left SEMI COMMA
 %nonassoc OPTION_SOME HIGHEST_PRIORITY 
 
 // remove for productions (the start symbols)
@@ -39,9 +38,8 @@
 %start <float_literal> float_literal
 %start <fn_sig> fn_sig
 %start <self_param> self_param 
-// %start <op_expr> op_expr
-// %start <stmt> stmt
-%start <struct_expr_struct> struct_expr_struct
+%start <stmt> stmt
+// %start <struct_expr_struct> struct_expr_struct
 %%
 
 // separated_nonempty_list(sep, X):
@@ -50,7 +48,7 @@
 /* 2. Lexical structure */
 	/* 2.6 Tokens */
 string_literal: 
-	| s = STR_LIT { s }
+	| s = STR_LIT { s } 
 	
 integer_literal: 
 	| d = DEC_INT_LIT { Dec_Int_Lit d }
@@ -213,12 +211,11 @@ let_stmt_assignment:
 	}
 
 
-// [1,2,3] [1,2,3,]
-// (1,2,3,)
+
 expr_stmt: 
-	| e = expr_without_block SEMI {Expr_Without_Block_Stmt e}
+	| e = expr_without_block SEMI {Expr_Without_Block_Stmt e} 
 	| e = expr_with_block SEMI {Expr_With_Block_Stmt e}
-	| e = expr_with_block {Expr_With_Block_Stmt e} %prec OPTION_NONE
+	| e = expr_with_block {Expr_With_Block_Stmt e} %prec LOWEST_PRIORITY
 
 		/* 8.2 Expressions */
 expr: 
@@ -252,9 +249,14 @@ literal_expr:
 			/* 8.2.3 Block expressions */
 
 block_expr: 
-	| LBRACE ia = inner_attrs s = list(stmt) e = option(expr_without_block) RBRACE 
-	  { (None, s, e) } 
-	
+	| LBRACE ia = inner_attrs e = ioption(expr_without_block) RBRACE 
+	  { (None, [], e) }
+	| LBRACE ia = inner_attrs s = nonempty_list(stmt) RBRACE 
+	  { (None, s, None) } %prec LOWEST_PRIORITY
+	| LBRACE ia = inner_attrs s = nonempty_list(stmt) e = expr_without_block RBRACE 
+	  { (None, s, Some e) } 
+
+	// make it multiple branches to prevent shift/reduce conflicts 
 async_block_expr: 
 	| KW_ASYNC m = option(KW_MOVE) b = block_expr { (m, b) }
 
@@ -325,9 +327,10 @@ struct_expr:
 	| u = struct_expr_unit { Struct_Expr_Unit u }
 
 struct_expr_struct:
-	| p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
-		ioption(COMMA) RBRACE 
-		{ (p, fs, None) }
+	| p = path_in_expr LBRACE
+	fs = separated_list_option_trailing(COMMA, struct_expr_field) RBRACE 
+		{ (p, fs, None) } 
+	
 	// | p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
 	// 	COMMA b = struct_base ioption(COMMA) RBRACE 
 	// 	{ (p, fs, Some b) }	
@@ -347,12 +350,14 @@ struct_expr_tuple:
 	| p = path_in_expr t = tuple_expr { (p, t) }
 
 struct_expr_unit: 
-	| p = path_in_expr { p }
+	| p = path_in_expr { p } %prec LOWEST_PRIORITY 
+	// this have overlaps with other expr starting with path_in_expr 
+	// so assign it with lowest priority
 
 			/* 8.2.9 Call expressions */
 
 call_expr: 
-	| e = expr LPAREN ls = separated_list(COMMA, expr) option(COMMA) RPAREN 
+	| e = expr LPAREN ls = separated_list_option_trailing(COMMA, expr) RPAREN 
 	  { (e, ls) }
 
 			/* 8.2.15 Field access expressions */
@@ -407,11 +412,10 @@ visibility:
 
 separated_nonempty_list_option_trailing(separator, X):
 |  x = X
-    { [ x ] }
-    [@name one]
-| x = X; separator; xs = separated_nonempty_list(separator, X); option(separator)
-    { x :: xs }
-    [@name more]
+    { [x] }
+| x = X; separator; xs = separated_nonempty_list(separator, X);
+    { [x] @ xs }
+| x = X separator { [x] }
 
 separated_list_option_trailing(separator, X):
 | xs = loption(separated_nonempty_list_option_trailing(separator, X))
