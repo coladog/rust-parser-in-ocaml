@@ -251,10 +251,11 @@ literal_expr:
 block_expr: 
 	| LBRACE ia = inner_attrs e = ioption(expr_without_block) RBRACE 
 	  { (None, [], e) }
-	| LBRACE ia = inner_attrs s = nonempty_list(stmt) RBRACE 
-	  { (None, s, None) } %prec LOWEST_PRIORITY
-	| LBRACE ia = inner_attrs s = nonempty_list(stmt) e = expr_without_block RBRACE 
-	  { (None, s, Some e) } 
+	| LBRACE ia = inner_attrs se = nonempty_list_option_trailing(stmt, expr_without_block) RBRACE 
+	  {
+		let (s, e) = se in
+		(None, s, e)
+	  }
 
 	// make it multiple branches to prevent shift/reduce conflicts 
 async_block_expr: 
@@ -301,7 +302,7 @@ group_expr:
 			/* 8.2.6 Array and index expressions */
 
 array_expr: 
-	| LBRACKET ls = separated_list_option_trailing(COMMA, expr) RBRACKET 
+	| LBRACKET ls = separated_list_option_trailing_sep(COMMA, expr) RBRACKET 
 	  { Exprs ls }
 	| LBRACKET e = expr SEMI rep = expr RBRACKET { Repeat (e, rep) }
 
@@ -311,7 +312,7 @@ index_expr:
 			/* 8.2.7 Tuple expressions */
 
 tuple_expr: 
-	| LPAREN ls = separated_list_option_trailing(COMMA, expr) RPAREN {ls}
+	| LPAREN ls = separated_list_option_trailing_sep(COMMA, expr) RPAREN {ls}
 
 tuple_index: 
 	| i = integer_literal { i }
@@ -328,7 +329,7 @@ struct_expr:
 
 struct_expr_struct:
 	| p = path_in_expr LBRACE
-	fs = separated_list_option_trailing(COMMA, struct_expr_field) RBRACE 
+	fs = separated_list_option_trailing_sep(COMMA, struct_expr_field) RBRACE 
 		{ (p, fs, None) } 
 	
 	// | p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
@@ -357,7 +358,7 @@ struct_expr_unit:
 			/* 8.2.9 Call expressions */
 
 call_expr: 
-	| e = expr LPAREN ls = separated_list_option_trailing(COMMA, expr) RPAREN 
+	| e = expr LPAREN ls = separated_list_option_trailing_sep(COMMA, expr) RPAREN 
 	  { (e, ls) }
 
 			/* 8.2.15 Field access expressions */
@@ -395,7 +396,7 @@ scrutinee:
 				match opor with 
 					| Lazy_And | Lazy_Or -> 
 						raise (Parser_Error "Lazy boolean operator 
-																	not allowed in match expression")
+											not allowed in match expression")
 					| _ -> e
 				) 
 			| _ -> e
@@ -410,25 +411,26 @@ visibility:
 	// TODO: Pub_Path
 
 
-separated_nonempty_list_option_trailing(separator, X):
+separated_nonempty_list_option_trailing_sep(separator, X):
 |  x = X
     { [x] }
 | x = X; separator; xs = separated_nonempty_list(separator, X);
     { [x] @ xs }
 | x = X separator { [x] }
 
-separated_list_option_trailing(separator, X):
-| xs = loption(separated_nonempty_list_option_trailing(separator, X))
+
+
+separated_list_option_trailing_sep(separator, X):
+| xs = loption(separated_nonempty_list_option_trailing_sep(separator, X))
 	{ xs }
 
-option_pref_some(X):
-  /* nothing */
-    { None } %prec OPTION_NONE
-    [@name none]
-| x = X
-    { Some x } 
-    [@name some]
-
+nonempty_list_option_trailing(X, trailing):
+    | x = X {([x], None)}
+    | x = X lt = nonempty_list_option_trailing(X, trailing) {
+        let (l, t) = lt in 
+        (x::l, t)
+    }
+    | x = X t = trailing {([x], Some t)}
 
 
 /* -2. TODO: not implemented */

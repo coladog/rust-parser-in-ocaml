@@ -222,7 +222,10 @@ let test_func_sig4() =
 	let expected = (Some const_qualifier, "foo", None, None, None, None) in
 	Alcotest.(check fn_sig_testable)
 	"function signature with const qualifier" expected (parse_ast_ ipt_str)
+
+(* let test_op_expr() =  *)
 	
+
 let test_int_literals1() = 
 	(* test integer literals *)
 	let parse_ast_ = parse_ast integer_literal in
