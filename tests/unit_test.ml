@@ -375,7 +375,7 @@ let () = let open Alcotest in run "unit tests" [
 		"integer-literals", [test_case "integer literals" `Quick test_int_literals1];
 		"float-literals", [test_case "float literals" `Quick test_float_literal1];
 		"operator-expressions", [test_case "operator expressions" `Quick test_op_expr1;
-															test_case "unary operator expressions" `Quick test_op_expr];
+															test_case "unary operator expressions" `Quick test_op_expr2];
 
 		"array-expressions", [test_case "array expressions" `Quick test_array_expr1]
 
