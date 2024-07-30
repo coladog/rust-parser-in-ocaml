@@ -12,3 +12,4 @@ let int_lit_testable = Alcotest.testable Syntax.pp_integer_literal Syntax.equal_
 let op_expr_testable = Alcotest.testable Syntax.pp_op_expr Syntax.equal_op_expr
 (* let literal_expr_testable = Alcotest.testable Syntax.pp_literal_expr Syntax.equal_literal_expr *)
 let expr_testable = Alcotest.testable Syntax.pp_expr Syntax.equal_expr
+let array_expr_testable = Alcotest.testable Syntax.pp_array_expr Syntax.equal_array_expr

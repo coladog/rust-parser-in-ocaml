@@ -341,6 +341,19 @@ let test_op_expr2() =
 	let actual = parse_ast ipt_str in
 	Alcotest.(check op_expr_testable) "negation and multiplication" expected actual
 
+let test_array_expr1() =  
+	let parse_ast = parse_ast array_expr_toplevel in
+	let ipt_str = "[1, 2, 3]" in
+	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
+	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
+	let thi_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "3")) in
+	let fir_expr = Expr_Without_Block (None, fir_lit_expr) in
+	let sec_expr = Expr_Without_Block (None, sec_lit_expr) in
+	let thi_expr = Expr_Without_Block (None, thi_lit_expr) in
+	let expected = Exprs([fir_expr; sec_expr; thi_expr]) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check array_expr_testable) "array expression" expected actual
+
 
 let () = let open Alcotest in run "unit tests" [
 		"struct-case", [
@@ -362,7 +375,8 @@ let () = let open Alcotest in run "unit tests" [
 		"integer-literals", [test_case "integer literals" `Quick test_int_literals1];
 		"float-literals", [test_case "float literals" `Quick test_float_literal1];
 		"operator-expressions", [test_case "operator expressions" `Quick test_op_expr1;
-															test_case "unary operator expressions" `Quick test_op_expr2]
-													
+															test_case "unary operator expressions" `Quick test_op_expr];
+
+		"array-expressions", [test_case "array expressions" `Quick test_array_expr1]
 
 	]

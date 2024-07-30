@@ -50,6 +50,7 @@
 %start <op_expr> op_expr_toplevel
 %start <literal_expr> literal_expr_toplevel
 %start <expr> expr_toplevel
+%start <array_expr> array_expr_toplevel
 %%
 
 item_toplevel: i = item { i } // TODO: figure out why EOF does not work here
@@ -63,7 +64,7 @@ op_expr_toplevel: o = op_expr EOF { o }
 literal_expr_toplevel: l = literal_expr EOF { l }
 expr_toplevel: e = expr EOF { e }
 expr_with_block_toplevel: e = expr_with_block EOF { e }
-
+array_expr_toplevel: e = array_expr EOF { e }
 
 // separated_nonempty_list(sep, X):
 // 	| l = separated_nonempty_list(sep, X) { l }
