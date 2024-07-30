@@ -238,7 +238,9 @@ let_stmt_assignment:
 expr_stmt: 
 	| e = expr_without_block SEMI {Expr_Without_Block_Stmt e} 
 	| e = expr_with_block SEMI {Expr_With_Block_Stmt e}
+	// |  e = expr_with_block  {Expr_With_Block_Stmt e}
 	// | e = expr_with_block_eligible_to_omit_semi_for_expr_stmt {Expr_With_Block_Stmt e} %prec LOWEST_PRIORITY
+	// FIXME enable one of these two and make sure there are no conflicts
 
 		/* 8.2 Expressions */
 expr: 
@@ -281,7 +283,7 @@ literal_expr:
 block_expr: 
 	// | LBRACE ia = option(inner_attrs) e = ioption(expr_without_block) RBRACE 
 	//   { (None, [], e) }
-	| LBRACE se = list_option_trailing(stmt, expr_without_block) RBRACE // TODO: got problems in the list_option_trailing
+	| LBRACE se = list_option_trailing(stmt, expr_without_block) RBRACE 
 	{ let (s, e) = se in (None, s, e) }
 
 block_expr_eligible_to_omit_semi_for_expr_stmt: 
@@ -492,6 +494,7 @@ list_option_trailing(X, trailing):
 		| None -> ([], None)
 		| Some lt -> lt
 	}
+	| t = trailing {([], Some t)}
 
 nonempty_list_trailing(X, trailing): 
 	| x = X t = trailing { ([x], t) }
