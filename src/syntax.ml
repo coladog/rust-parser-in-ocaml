@@ -204,6 +204,7 @@ and expr =
 and expr_without_block = 
 	| Literal_Expr of literal_expr
 	| Op_Expr of op_expr
+	| Grouped_Expr of expr
 	| Array_Expr of array_expr 
 	| Tuple_Expr of tuple_expr
 	| Tuple_Index_Expr of tuple_index_expr

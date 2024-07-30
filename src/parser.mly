@@ -6,41 +6,65 @@
 
 // precedence and associativity
 // ref: https://doc.rust-lang.org/reference/expressions.html
-%nonassoc OPTION_NONE LOWEST_PRIORITY
+%nonassoc OPTION_NONE LOWEST_PRIORITY 
+%nonassoc DOT
 
-%nonassoc UMINUS UPLUS UNOT UREF UMUTREF
-
-%right EQ PLUSEQ MINUSEQ MULEQ DIVEQ PERCENTEQ ANDEQ OREQ CARETEQ SHLEQ SHREQ
+%right EQ PLUSEQ MINUSEQ STAREQ SLASHEQ PERCENTEQ ANDEQ OREQ CARETEQ SHLEQ SHREQ
 // require parentheses for .. and ..=
 %left OROR
 %left ANDAND
 // require parentheses for ==, !=, <, >, <=, >=
+%nonassoc EQEQ NE LT GT LE GE
 %left OR
 %left CARET
 %left AND
 %left SHL SHR
+%left PLUS MINUS
+%left STAR SLASH PERCENT
+%left KW_AS
+%nonassoc UNARY_OPS
 %nonassoc QUESTION
-
+%nonassoc FUNC_CALL ARR_INDEXING
+%left FIELD_ACCESS
+%nonassoc METHOD_CALL
+%nonassoc PATHS
 
 %nonassoc THEN // mark the if branch with this so that it have lower precedence than else
 %nonassoc KW_ELSE
 
-%nonassoc LPAREN LBRACE LBRACKET
-%nonassoc RPAREN RBRACE RBRACKET
+%nonassoc LBRACE
+%nonassoc LBRACKET 
+%nonassoc LPAREN 
 
 %left SEMI COMMA
 %nonassoc OPTION_SOME HIGHEST_PRIORITY 
 
 // remove for productions (the start symbols)
-%start <item> item
-%start <string_literal> string_literal
-%start <integer_literal> integer_literal
-%start <float_literal> float_literal
-%start <fn_sig> fn_sig
-%start <self_param> self_param 
-%start <stmt> stmt
-// %start <struct_expr_struct> struct_expr_struct
+%start <item> item_toplevel
+%start <string_literal> string_literal_toplevel
+%start <integer_literal> integer_literal_toplevel
+%start <float_literal> float_literal_toplevel
+%start <fn_sig> fn_sig_toplevel
+%start <self_param> self_param_toplevel
+%start <stmt> stmt_toplevel
+%start <op_expr> op_expr_toplevel
+%start <literal_expr> literal_expr_toplevel
+%start <expr> expr_toplevel
 %%
+
+item_toplevel: i = item EOF { i } // to resolve end-of-stream error
+string_literal_toplevel: s = string_literal EOF { s }
+integer_literal_toplevel: i = integer_literal EOF { i }
+float_literal_toplevel: f = float_literal EOF { f }
+fn_sig_toplevel: f = fn_sig EOF { f }
+self_param_toplevel: s = self_param EOF { s }
+stmt_toplevel: s = stmt EOF { s }
+op_expr_toplevel: o = op_expr EOF { o }
+literal_expr_toplevel: l = literal_expr EOF { l }
+expr_toplevel: e = expr EOF { e }
+struct_expr_struct_toplevel: s = struct_expr_struct EOF { s }
+expr_with_block_toplevel: e = expr_with_block EOF { e }
+
 
 // separated_nonempty_list(sep, X):
 // 	| l = separated_nonempty_list(sep, X) { l }
@@ -51,7 +75,7 @@ string_literal:
 	| s = STR_LIT { s } 
 	
 integer_literal: 
-	| d = DEC_INT_LIT { Dec_Int_Lit d }
+	| d = DEC_INT_LIT { print_endline "parser read in int lit";  Dec_Int_Lit d }
 	| b = BIN_INT_LIT { Bin_Int_Lit b }
 	| o = OCT_INT_LIT { Oct_Int_Lit o }
 	| h = HEX_INT_LIT { Hex_Int_Lit h }
@@ -215,22 +239,23 @@ let_stmt_assignment:
 expr_stmt: 
 	| e = expr_without_block SEMI {Expr_Without_Block_Stmt e} 
 	| e = expr_with_block SEMI {Expr_With_Block_Stmt e}
-	| e = expr_with_block {Expr_With_Block_Stmt e} %prec LOWEST_PRIORITY
+	// | e = expr_with_block_eligible_to_omit_semi_for_expr_stmt {Expr_With_Block_Stmt e} %prec LOWEST_PRIORITY
 
 		/* 8.2 Expressions */
 expr: 
-	| oa = outer_attrs e = expr_without_block { Expr_Without_Block (None, e) }
-	| oa = outer_attrs b = expr_with_block { Expr_With_Block (None, b) }
-
+	|  e = expr_without_block { Expr_Without_Block (None, e) }
+	|  b = expr_with_block { Expr_With_Block (None, b) } // need to add option attribute
+ 
 expr_without_block: 
 	| l = literal_expr { Literal_Expr l }
-	| o = op_expr { Op_Expr o }
+	| o = op_expr { Op_Expr o } // left resursion
+	| g = grouped_expr { Grouped_Expr g }
 	| a = array_expr { Array_Expr a }
 	| t = tuple_expr { Tuple_Expr t }
-	| t = tuple_index_expr { Tuple_Index_Expr t }
+	| t = tuple_index_expr { Tuple_Index_Expr t } // left resursion
 	| s = struct_expr { Struct_Expr s }
-	| c = call_expr { Call_Expr c }
-	| f = field_access_expr { Field_Access_Expr f }
+	| c = call_expr { Call_Expr c } // left resursion
+	| f = field_access_expr { Field_Access_Expr f } // left resursion 
 
 expr_with_block:
 	| b = block_expr { Block_Expr b }
@@ -238,10 +263,16 @@ expr_with_block:
 	| i = if_let_expr { If_Let_Expr i }
 	| u = unsafe_block_expr { Unsafe_Block_Expr u }
 
+expr_with_block_eligible_to_omit_semi_for_expr_stmt:
+	| b = block_expr_eligible_to_omit_semi_for_expr_stmt { Block_Expr b }
+	| i = if_expr { If_Expr i }
+	| i = if_let_expr { If_Let_Expr i }
+	| u = unsafe_block_expr { Unsafe_Block_Expr u }
+
 			/* 8.2.1 Literal expressions */
 
 literal_expr: 
-	| s = string_literal { String_Literal s }
+	| s = string_literal { print_endline "literal_expr init"; String_Literal s }
 	// TODO | b = byte_literal { Byte_Literal b }
 	| i = integer_literal { Integer_Literal i }
 	| f = float_literal { Float_Literal f }
@@ -249,28 +280,42 @@ literal_expr:
 			/* 8.2.3 Block expressions */
 
 block_expr: 
-	| LBRACE ia = inner_attrs e = ioption(expr_without_block) RBRACE 
-	  { (None, [], e) }
-	| LBRACE ia = inner_attrs se = nonempty_list_option_trailing(stmt, expr_without_block) RBRACE 
-	  {
-		let (s, e) = se in
-		(None, s, e)
-	  }
+	// | LBRACE ia = option(inner_attrs) e = ioption(expr_without_block) RBRACE 
+	//   { (None, [], e) }
+	| LBRACE se = list_option_trailing(stmt, expr_without_block) RBRACE // TODO: got problems in the list_option_trailing
+	{ let (s, e) = se in (None, s, e) }
 
-	// make it multiple branches to prevent shift/reduce conflicts 
+block_expr_eligible_to_omit_semi_for_expr_stmt: 
+	| LBRACE se = nonempty_list_trailing(stmt, unit_expr) RBRACE
+	{ 
+		let (s, e) = se in (None, s, Some (Tuple_Expr([])))
+	}
+	  
+	
+
 async_block_expr: 
 	| KW_ASYNC m = option(KW_MOVE) b = block_expr { (m, b) }
+
+async_block_expr_eligible_to_omit_semi_for_expr_stmt: 
+	| KW_ASYNC m = option(KW_MOVE) b = block_expr_eligible_to_omit_semi_for_expr_stmt 
+	  { (m, b) }
 
 const_block_expr:
 	| KW_CONST b = block_expr { b }
 
+const_block_expr_eligible_to_omit_semi_for_expr_stmt:
+	| KW_CONST b = block_expr_eligible_to_omit_semi_for_expr_stmt { b }
+
 unsafe_block_expr:
 	| KW_UNSAFE b = block_expr { b }
 
+unsafe_block_expr_eligible_to_omit_semi_for_expr_stmt:
+	| KW_UNSAFE b = block_expr_eligible_to_omit_semi_for_expr_stmt { b }
+
 			/* 8.2.4 Operator expressions */
 
-bin_opor:
-	| PLUS { Add }      | MINUS { Sub } | STAR { Mul } | SLASH { Div } | PERCENT { Rem }
+%inline bin_opor:
+	| PLUS { print_endline "parser read in add"; Add }      | MINUS { Sub } | STAR { Mul } | SLASH { Div } | PERCENT { Rem }
 	| CARET { Bit_Xor } | AND { Bit_And }
 	| OR { Bit_Or }     | SHL { Shl }   | SHR { Shr }
 	| EQEQ { Eq }       | NE { Ne }     | LT { Lt }    | LE { Le }
@@ -290,13 +335,13 @@ un_opor:
 	| QUESTION { Error_Propagation }
 
 op_expr:
-	| u = un_opor e = expr { Unary (u, e)}
+	| u = un_opor e = expr { Unary (u, e) } %prec UNARY_OPS
 	| e1 = expr b = bin_opor e2 = expr { Binary (e1, b, e2) }
 	| e = expr KW_AS t = type_no_bounds { Cast (e, t) }
 
 			/* 8.2.5 Grouped expressions */
 
-group_expr: 
+%inline grouped_expr: 
 	| LPAREN e = expr RPAREN { e }
 
 			/* 8.2.6 Array and index expressions */
@@ -312,7 +357,17 @@ index_expr:
 			/* 8.2.7 Tuple expressions */
 
 tuple_expr: 
-	| LPAREN ls = separated_list_option_trailing_sep(COMMA, expr) RPAREN {ls}
+	| unit_expr { [] }
+	| LPAREN ls = tuple_elements RPAREN {ls}
+
+tuple_elements: 
+// (expression,)+ expression?
+	| e = expr COMMA { [e] }
+	| e = expr COMMA es = tuple_elements { e :: es }
+  | e1 = expr COMMA e2 = expr { [e1; e2] }
+
+unit_expr: 
+	| LPAREN RPAREN { () }
 
 tuple_index: 
 	| i = integer_literal { i }
@@ -337,10 +392,10 @@ struct_expr_struct:
 	// 	{ (p, fs, Some b) }	
 
 struct_expr_field: 
-	// | oa = outer_attrs id = IDENT COLON e = expr
-	// 	{ With_Expr_Ident (None, id, e)}
-	// | oa = outer_attrs  t  = tuple_index COLON e = expr 
-	// 	{ With_Expr_Tuple_Index (None, t, e)}
+	| oa = outer_attrs id = IDENT COLON e = expr
+		{ With_Expr_Ident (None, id, e)}
+	| oa = outer_attrs  t  = tuple_index COLON e = expr 
+		{ With_Expr_Tuple_Index (None, t, e)}
 	| oa = outer_attrs id = IDENT
 	 	{ Without_Expr (None, id) }
 
@@ -364,7 +419,7 @@ call_expr:
 			/* 8.2.15 Field access expressions */
 
 field_access_expr: 
-	| e = expr DOT id = IDENT { (e, id) }
+	| e = expr DOT id = IDENT { (e, id) } %prec FIELD_ACCESS
 
 			/* 8.2.15 If and if let expressions */
 			
@@ -425,13 +480,26 @@ separated_list_option_trailing_sep(separator, X):
 	{ xs }
 
 nonempty_list_option_trailing(X, trailing):
-    | x = X {([x], None)}
-    | x = X lt = nonempty_list_option_trailing(X, trailing) {
-        let (l, t) = lt in 
-        (x::l, t)
-    }
-    | x = X t = trailing {([x], Some t)}
+	| x = X {([x], None)}
+	| x = X lt = nonempty_list_option_trailing(X, trailing) {
+			let (l, t) = lt in 
+			(x::l, t)
+	}
+	| x = X t = trailing {([x], Some t)}
 
+list_option_trailing(X, trailing): 
+	| lt_opt = ioption(nonempty_list_option_trailing(X, trailing)) {
+		match lt_opt with 
+		| None -> ([], None)
+		| Some lt -> lt
+	}
+
+nonempty_list_trailing(X, trailing): 
+	| x = X t = trailing { ([x], t) }
+	| x = X lt = nonempty_list_trailing(X, trailing) { 
+		let (l, t) = lt in 
+		(x::l, t)
+	}
 
 /* -2. TODO: not implemented */
 type__: 

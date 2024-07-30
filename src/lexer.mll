@@ -95,7 +95,7 @@ rule read_token = parse
 
 	(* Punctuations *)
 
-	| "+" { PLUS }
+	| "+" { print_endline "lexer read in PLUS"; PLUS }
 	| "-" { MINUS }
 	| "*" { STAR }
 	| "/" { SLASH }
@@ -170,7 +170,7 @@ rule read_token = parse
 	| "0b" bindigit (bindigit|"_")*suffix_no_e? {BIN_INT_LIT (Lexing.lexeme lexbuf)}
 	| "0o" octdigit (octdigit|"_")*suffix_no_e? {OCT_INT_LIT (Lexing.lexeme lexbuf)}
 	| "0x" hexdigit (hexdigit|"_")*suffix_no_e? {HEX_INT_LIT (Lexing.lexeme lexbuf)}
-	| dec_lit_no_suffix suffix_no_e? {DEC_INT_LIT (Lexing.lexeme lexbuf)}
+	| dec_lit_no_suffix suffix_no_e? {print_endline ("lexer read in int lit "^(Lexing.lexeme lexbuf)); DEC_INT_LIT (Lexing.lexeme lexbuf)}
 		(* Float literals *)
 	| dec_lit_no_suffix '.' {FLOAT_LIT (Lexing.lexeme lexbuf)}
 	| dec_lit_no_suffix '.' dec_lit_no_suffix suffix_no_e? {FLOAT_LIT (Lexing.lexeme lexbuf)}
