@@ -258,8 +258,9 @@ let test_float_literal1() =
 			Alcotest.(check bool) 
 				"invalid float literal" true (parse_ast_ x <> x)) lits_invalid
 
-let test_expr1() = 
-	(* test operator expresions *)
+let test_op_expr1() = 
+
+	(* test binary operator expresions *)
 	let parse_ast = parse_ast op_expr_toplevel in 
 	let ipt_str = "1 + 2" in
 	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
@@ -280,7 +281,65 @@ let test_expr1() =
 	let mul_sub_expr = Expr_Without_Block(None, Op_Expr(Binary (sec_expr, Mul, thi_expr))) in 
 	let expected = Binary (fir_expr, Add, mul_sub_expr) in
 	let actual = parse_ast ipt_str in
-	Alcotest.(check op_expr_testable) "addition and multiplication" expected actual
+	Alcotest.(check op_expr_testable) "addition and multiplication" expected actual; 
+
+	let ipt_str = "(1 + 2) * 3" in
+	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
+	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
+	let thr_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "3")) in
+	let fir_expr = Expr_Without_Block (None, fir_lit_expr) in
+	let sec_expr = Expr_Without_Block (None, sec_lit_expr) in
+	let thi_expr = Expr_Without_Block (None, thr_lit_expr) in
+	let add_expr = Grouped_Expr(Expr_Without_Block
+									(None, Op_Expr(Binary (fir_expr, Add, sec_expr)))) in
+	let expected = Binary (Expr_Without_Block(None, add_expr), Mul, thi_expr) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check op_expr_testable) "with parentheses" expected actual;
+
+	let ipt_str = "(1) / (2)" in 
+	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
+	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
+	let fir_expr = Expr_Without_Block(None, 
+									Grouped_Expr(Expr_Without_Block (None, fir_lit_expr))) in
+	let sec_expr = Expr_Without_Block(None, 
+									Grouped_Expr(Expr_Without_Block (None, sec_lit_expr))) in
+	let expected = Binary (fir_expr, Div, sec_expr) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check op_expr_testable) "parantheses on single number" expected actual; 
+
+	let ipt_str = "{1} < {2} " in 
+	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
+	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
+	let fir_block = Block_Expr(None, [], Some fir_lit_expr) in
+	let sec_block = Block_Expr(None, [], Some sec_lit_expr) in
+	let fir_expr = Expr_With_Block(None, fir_block) in
+	let sec_expr = Expr_With_Block(None, sec_block) in
+	let expected = Binary (fir_expr, Lt, sec_expr) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check op_expr_testable) "block expressions" expected actual
+
+let test_op_expr2() = 
+	(* test unary operator expressions *)
+	let parse_ast = parse_ast op_expr_toplevel in
+	let ipt_str = "-1" in
+	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
+	let fir_expr = Expr_Without_Block (None, fir_lit_expr) in
+	let expected = Unary (Neg, fir_expr) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check op_expr_testable) "negation" expected actual; 
+
+	let ipt_str = "-1 * 2 + 3" in 
+	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
+	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
+	let thi_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "3")) in
+	let fir_expr = Expr_Without_Block (None, fir_lit_expr) in
+	let sec_expr = Expr_Without_Block (None, sec_lit_expr) in
+	let thi_expr = Expr_Without_Block (None, thi_lit_expr) in
+	let neg_expr = Expr_Without_Block (None, Op_Expr(Unary (Neg, fir_expr))) in
+	let neg_mul_expr = Expr_Without_Block (None, Op_Expr(Binary (neg_expr, Mul, sec_expr))) in
+	let expected = Binary (neg_mul_expr, Add, thi_expr) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check op_expr_testable) "negation and multiplication" expected actual
 
 
 let () = let open Alcotest in run "unit tests" [
@@ -302,6 +361,8 @@ let () = let open Alcotest in run "unit tests" [
 
 		"integer-literals", [test_case "integer literals" `Quick test_int_literals1];
 		"float-literals", [test_case "float literals" `Quick test_float_literal1];
-		"operator-expressions", [test_case "operator expressions" `Quick test_expr1]
+		"operator-expressions", [test_case "operator expressions" `Quick test_op_expr1;
+															test_case "unary operator expressions" `Quick test_op_expr2]
+													
 
 	]

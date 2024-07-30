@@ -342,7 +342,7 @@ op_expr:
 
 			/* 8.2.5 Grouped expressions */
 
-%inline grouped_expr: 
+grouped_expr: 
 	| LPAREN e = expr RPAREN { e }
 
 			/* 8.2.6 Array and index expressions */
