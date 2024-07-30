@@ -52,17 +52,16 @@
 %start <expr> expr_toplevel
 %%
 
-item_toplevel: i = item EOF { i } // to resolve end-of-stream error
+item_toplevel: i = item { i } // TODO: figure out why EOF does not work here
 string_literal_toplevel: s = string_literal EOF { s }
 integer_literal_toplevel: i = integer_literal EOF { i }
-float_literal_toplevel: f = float_literal EOF { f }
+float_literal_toplevel: f = float_literal { f } // TODO: figure out why EOF does not work here
 fn_sig_toplevel: f = fn_sig EOF { f }
 self_param_toplevel: s = self_param EOF { s }
 stmt_toplevel: s = stmt EOF { s }
 op_expr_toplevel: o = op_expr EOF { o }
 literal_expr_toplevel: l = literal_expr EOF { l }
 expr_toplevel: e = expr EOF { e }
-struct_expr_struct_toplevel: s = struct_expr_struct EOF { s }
 expr_with_block_toplevel: e = expr_with_block EOF { e }
 
 
@@ -75,7 +74,7 @@ string_literal:
 	| s = STR_LIT { s } 
 	
 integer_literal: 
-	| d = DEC_INT_LIT { print_endline "parser read in int lit";  Dec_Int_Lit d }
+	| d = DEC_INT_LIT { Dec_Int_Lit d }
 	| b = BIN_INT_LIT { Bin_Int_Lit b }
 	| o = OCT_INT_LIT { Oct_Int_Lit o }
 	| h = HEX_INT_LIT { Hex_Int_Lit h }
@@ -132,8 +131,8 @@ shorthand_self:
 		| Some (r, None) -> Ref_Only(Some r, m)
 	 }
 ref_lifetime:
-	| r = AND { print_endline "matched AND"; (r, None)}
-	| r = AND l = lifetime { print_endline "matched AND lifetime"; (r, Some l) }
+	| r = AND { (r, None) }
+	| r = AND l = lifetime { (r, Some l) }
 
 typed_self:
 	| KW_SELFVALUE__COLON t = type__  { (None, t) }
@@ -272,7 +271,7 @@ expr_with_block_eligible_to_omit_semi_for_expr_stmt:
 			/* 8.2.1 Literal expressions */
 
 literal_expr: 
-	| s = string_literal { print_endline "literal_expr init"; String_Literal s }
+	| s = string_literal { String_Literal s }
 	// TODO | b = byte_literal { Byte_Literal b }
 	| i = integer_literal { Integer_Literal i }
 	| f = float_literal { Float_Literal f }
@@ -315,7 +314,7 @@ unsafe_block_expr_eligible_to_omit_semi_for_expr_stmt:
 			/* 8.2.4 Operator expressions */
 
 %inline bin_opor:
-	| PLUS { print_endline "parser read in add"; Add }      | MINUS { Sub } | STAR { Mul } | SLASH { Div } | PERCENT { Rem }
+	| PLUS { Add }      | MINUS { Sub } | STAR { Mul } | SLASH { Div } | PERCENT { Rem }
 	| CARET { Bit_Xor } | AND { Bit_And }
 	| OR { Bit_Or }     | SHL { Shl }   | SHR { Shr }
 	| EQEQ { Eq }       | NE { Ne }     | LT { Lt }    | LE { Le }

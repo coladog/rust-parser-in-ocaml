@@ -268,22 +268,24 @@ let test_expr1() =
 	let sec_expr = Expr_Without_Block (None, sec_lit_expr) in
 	let expected = Binary (fir_expr, Add, sec_expr) in
 	let actual = parse_ast ipt_str in
-	Alcotest.(check op_expr_testable) "only addition" expected actual
+	Alcotest.(check op_expr_testable) "only addition" expected actual;
 
-	(* let ipt_str = "1 + 2 * 3" in
+	let ipt_str = "1 + 2 * 3" in
 	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
 	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
 	let thi_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "3")) in
 	let fir_expr = Expr_Without_Block (None, fir_lit_expr) in
 	let sec_expr = Expr_Without_Block (None, sec_lit_expr) in
 	let thi_expr = Expr_Without_Block (None, thi_lit_expr) in
-	let mul_sub_expr = Binary (sec_expr, Mul, thi_expr) 
+	let mul_sub_expr = Expr_Without_Block(None, Op_Expr(Binary (sec_expr, Mul, thi_expr))) in 
+	let expected = Binary (fir_expr, Add, mul_sub_expr) in
 	let actual = parse_ast ipt_str in
-	Alcotest.(check op_expr_testable) "addition and multiplication" expected actual *)
+	Alcotest.(check op_expr_testable) "addition and multiplication" expected actual
 
 
 let () = let open Alcotest in run "unit tests" [
-		"struct-case", [test_case "struct struct" `Quick test_struct_def1;
+		"struct-case", [
+			test_case "struct struct" `Quick test_struct_def1;
 										test_case "unit structs" `Quick test_struct_def2;
 										test_case "tuple structs" `Quick test_struct_def3;
 									 ];

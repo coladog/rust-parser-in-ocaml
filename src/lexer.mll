@@ -181,10 +181,14 @@ rule read_token = parse
 	| "self" whitespace* ":" {KW_SELFVALUE__COLON}
 	| "mut" whitespace* "self" whitespace* ":" {KW_MUT__KW_SELFVALUE__COLON}
 
+	(* Comments *)
+	| "//" {read_single_line_comment lexbuf}
+	| "/*" {read_multi_line_comment lexbuf}
+
 	(* Special chars *)
 	| whitespace { next_line lexbuf; read_token lexbuf }
 	| newline { next_line lexbuf; read_token lexbuf }
-	| eof { EOF }
+	| eof {print_endline "eof detected in lexer"; EOF }
 	| _ {raise (Syntax_Error ("Lexer: Invalid token " ^ Lexing.lexeme lexbuf))}
 
 and read_single_line_comment = parse
