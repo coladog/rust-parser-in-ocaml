@@ -16,8 +16,10 @@ let preprocess_if_expr str =
 				met_delim := true;
 				loop tl
 			| Text s -> 
-				if not !met_delim then 
+				if not !met_delim then begin
+					ret := !ret ^ s;
 					loop tl
+				end
 					(* match if the next word is let, if it is, then skip *)
 				else if Str.string_match (Str.regexp "\\blet\\b") s 0 then 
 					loop tl
@@ -45,6 +47,7 @@ let preprocess_if_expr str =
 	loop strs_sep_if
 
 let parse_ast root_element str = 
+	let str = preprocess_if_expr str in
 	let lexbuf = Lexing.from_string str in
 	let ast = root_element Lexer.read_token lexbuf in
 	ast  

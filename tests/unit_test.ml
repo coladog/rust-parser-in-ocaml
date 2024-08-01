@@ -404,8 +404,17 @@ let test_preprocess_if() =
 	let ipt_str = "if A{}+B{}{}" in
 	let expected_str = "if( A){}+B{}{}" in 
 	let actual_str = preprocess_if_expr ipt_str in
-	Alcotest.(check string) "if expression with binary operator" expected_str actual_str
+	Alcotest.(check string) "if expression with binary operator" expected_str actual_str;
+
+	let ipt_str = "if a{}" in 
+	let expected_str = "if( a){}" in
+	let actual_str = preprocess_if_expr ipt_str in
+	Alcotest.(check string) "if expression with single letter" expected_str actual_str;
 	
+	let ipt_str = "a b c d e f struct something" in 
+	let expected_str = "a b c d e f struct something" in
+	let actual_str = preprocess_if_expr ipt_str in
+	Alcotest.(check string) "no if expression" expected_str actual_str
 	(* test if let *)
 
 let () = let open Alcotest in run "unit tests" [
