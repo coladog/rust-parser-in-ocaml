@@ -11,7 +11,8 @@
  (flags --external-tokens Tokens)
  (explain true))
 
-(library
+(library 
+ (libraries str)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq))
  (modules syntax lexer tokens parser)

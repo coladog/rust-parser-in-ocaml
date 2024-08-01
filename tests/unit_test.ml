@@ -389,6 +389,25 @@ let test_struct_expr1() =
 
 (* let expr for the next *)
 
+
+let test_preprocess_if() = 
+	let ipt_str = "if(A{}).x(){}" in 
+	let expected_str = "if((A{}).x()){}" in 
+	let actual_str = preprocess_if_expr ipt_str in
+	Alcotest.(check string) "if expression" expected_str actual_str;
+
+	let ipt_str = "if A{}{}" in 
+	let expected_str = "if( A){}{}" in 
+	let actual_str = preprocess_if_expr ipt_str in
+	Alcotest.(check string) "if expression without parentheses" expected_str actual_str;
+
+	let ipt_str = "if A{}+B{}{}" in
+	let expected_str = "if( A){}+B{}{}" in 
+	let actual_str = preprocess_if_expr ipt_str in
+	Alcotest.(check string) "if expression with binary operator" expected_str actual_str
+	
+	(* test if let *)
+
 let () = let open Alcotest in run "unit tests" [
 		"struct-case", [
 			test_case "struct struct" `Quick test_struct_def1;
@@ -413,6 +432,7 @@ let () = let open Alcotest in run "unit tests" [
 
 		"array-expressions", [test_case "array expressions" `Quick test_array_expr1;
 													test_case "array indexing" `Quick test_array_expr2];
-		"struct-expressions", [test_case "struct expressions" `Quick test_struct_expr1]
+		"struct-expressions", [test_case "struct expressions" `Quick test_struct_expr1];
+		"preprocess", [test_case "preprocess if" `Quick test_preprocess_if]
 
 	]
