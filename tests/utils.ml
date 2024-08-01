@@ -13,3 +13,5 @@ let op_expr_testable = Alcotest.testable Syntax.pp_op_expr Syntax.equal_op_expr
 (* let literal_expr_testable = Alcotest.testable Syntax.pp_literal_expr Syntax.equal_literal_expr *)
 let expr_testable = Alcotest.testable Syntax.pp_expr Syntax.equal_expr
 let array_expr_testable = Alcotest.testable Syntax.pp_array_expr Syntax.equal_array_expr
+let index_expr_testable = Alcotest.testable Syntax.pp_tuple_index_expr Syntax.equal_tuple_index_expr
+let struct_expr_testable = Alcotest.testable Syntax.pp_struct_expr Syntax.equal_struct_expr

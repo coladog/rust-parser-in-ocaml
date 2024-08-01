@@ -51,6 +51,8 @@
 %start <literal_expr> literal_expr_toplevel
 %start <expr> expr_toplevel
 %start <array_expr> array_expr_toplevel
+%start <index_expr> index_expr_toplevel
+%start <struct_expr> struct_expr_toplevel
 %%
 
 item_toplevel: i = item { i } // TODO: figure out why EOF does not work here
@@ -65,6 +67,8 @@ literal_expr_toplevel: l = literal_expr EOF { l }
 expr_toplevel: e = expr EOF { e }
 expr_with_block_toplevel: e = expr_with_block EOF { e }
 array_expr_toplevel: e = array_expr EOF { e }
+index_expr_toplevel: e = index_expr EOF { e }
+struct_expr_toplevel: s = struct_expr EOF { s }
 
 // separated_nonempty_list(sep, X):
 // 	| l = separated_nonempty_list(sep, X) { l }
@@ -253,11 +257,13 @@ expr_without_block:
 	| o = op_expr { Op_Expr o } // left resursion
 	| g = grouped_expr { Grouped_Expr g }
 	| a = array_expr { Array_Expr a }
+	| i = index_expr { Index_Expr i }
 	| t = tuple_expr { Tuple_Expr t }
 	| t = tuple_index_expr { Tuple_Index_Expr t } // left resursion
 	| s = struct_expr { Struct_Expr s }
 	| c = call_expr { Call_Expr c } // left resursion
 	| f = field_access_expr { Field_Access_Expr f } // left resursion 
+	| p = IDENT { Place_Expr p }
 
 expr_with_block:
 	| b = block_expr { Block_Expr b }
@@ -381,8 +387,13 @@ tuple_index_expr:
 
 struct_expr: 
 	| s = struct_expr_struct { Struct_Expr_Struct s }
-	| t = struct_expr_tuple { Struct_Expr_Tuple t }
-	| u = struct_expr_unit { Struct_Expr_Unit u }
+	// | t = struct_expr_tuple { Struct_Expr_Tuple t } this is equiv to call expr
+	// | u = struct_expr_unit { Struct_Expr_Unit u }
+
+/* 
+TODO:
+struct_expr_NSS
+ */
 
 struct_expr_struct:
 	| p = path_in_expr LBRACE
@@ -407,10 +418,11 @@ struct_base:
 struct_expr_tuple: 
 	| p = path_in_expr t = tuple_expr { (p, t) }
 
-struct_expr_unit: 
-	| p = path_in_expr { p } %prec LOWEST_PRIORITY 
-	// this have overlaps with other expr starting with path_in_expr 
-	// so assign it with lowest priority
+// struct_expr_unit: 
+// 	| p = path_in_expr { p } %prec LOWEST_PRIORITY
+// // FIXME: this cause ambiguity with expression with idnetifier
+// 	// this have overlaps with other expr starting with path_in_expr 
+// 	// so assign it with lowest priority
 
 			/* 8.2.9 Call expressions */
 
@@ -426,13 +438,15 @@ field_access_expr:
 			/* 8.2.15 If and if let expressions */
 			
 if_expr: 
-	| KW_IF e = expr b = block_expr e2 = ioption(else_expr) {	
+	| KW_IF LPAREN e = expr RPAREN b = block_expr e2 = ioption(else_expr) {	
 			(* making sure that expr is not struct_expr *)
 			match e with
 				| Expr_Without_Block (_, (Struct_Expr _)) -> 
 					raise (Parser_Error "Struct expression not allowed in if expression")
 				| _ -> (e, b, e2)
 		} %prec THEN
+	// adding paren here to resolve parsing conflicts
+	// the parens will be automatically added in the preprocessor
 
 else_expr: 
 	| KW_ELSE b = block_expr { Else_Block b }
@@ -440,7 +454,8 @@ else_expr:
 	| KW_ELSE e = if_let_expr { Else_If_Let e } 
 
 if_let_expr: 
-	| KW_IF KW_LET p = pattern EQ s = scrutinee b = block_expr e = ioption(else_expr) 
+	| KW_IF KW_LET p = pattern EQ LPAREN s = scrutinee RPAREN 
+		b = block_expr e = ioption(else_expr) 
 	  { (p, s, b, e) } %prec THEN
 
 			/* 8.2.16 Match expressions */
@@ -469,16 +484,16 @@ visibility:
 
 
 separated_nonempty_list_option_trailing_sep(separator, X):
-|  x = X
-    { [x] }
-| x = X; separator; xs = separated_nonempty_list(separator, X);
-    { [x] @ xs }
-| x = X separator { [x] }
+	|  x = X
+			{ [x] }
+	| x = X; separator; xs = separated_nonempty_list(separator, X);
+			{ [x] @ xs }
+	| x = X separator { [x] }
 
 
 
 separated_list_option_trailing_sep(separator, X):
-| xs = loption(separated_nonempty_list_option_trailing_sep(separator, X))
+	| xs = loption(separated_nonempty_list_option_trailing_sep(separator, X))
 	{ xs }
 
 nonempty_list_option_trailing(X, trailing):

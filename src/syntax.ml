@@ -206,17 +206,21 @@ and expr_without_block =
 	| Op_Expr of op_expr
 	| Grouped_Expr of expr
 	| Array_Expr of array_expr 
+	| Index_Expr of index_expr
 	| Tuple_Expr of tuple_expr
 	| Tuple_Index_Expr of tuple_index_expr
 	| Struct_Expr of struct_expr
 	| Call_Expr of call_expr
 	| Field_Access_Expr of field_access_expr
+	| Place_Expr of place_expression
 
 and expr_with_block = 
 	| Block_Expr of block_expr
 	| If_Expr of if_expr
 	| If_Let_Expr of if_let_expr
 	| Unsafe_Block_Expr of unsafe_block_expr
+
+and place_expression = string
 
 		(* 8.2.1 Literal expressions *)
 
@@ -329,6 +333,8 @@ and scrutinee = expr (* expr except struct expression *)
 (* 9. Patterns *)
 
 and pattern = not_implemented
+
+and identifier_pattern = reference option * mutability * string
 
 (* 10. Type system *)
 

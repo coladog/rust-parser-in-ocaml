@@ -352,8 +352,42 @@ let test_array_expr1() =
 	let thi_expr = Expr_Without_Block (None, thi_lit_expr) in
 	let expected = Exprs([fir_expr; sec_expr; thi_expr]) in
 	let actual = parse_ast ipt_str in
-	Alcotest.(check array_expr_testable) "array expression" expected actual
+	Alcotest.(check array_expr_testable) "array expression" expected actual; 
 
+	let ipt_str = "[1; 2+3]" in 
+	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
+	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
+	let thi_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "3")) in
+	let fir_expr = Expr_Without_Block (None, fir_lit_expr) in
+	let sec_expr = Expr_Without_Block (None, sec_lit_expr) in
+	let thi_expr = Expr_Without_Block (None, thi_lit_expr) in
+	let add_expr = Expr_Without_Block (None, Op_Expr(Binary (sec_expr, Add, thi_expr))) in
+	let expected = Repeat(fir_expr, add_expr) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check array_expr_testable) "array expression with semicolon" expected actual
+
+let test_array_expr2() = 
+	(* test array indexing *)
+	let parse_ast = parse_ast expr_toplevel in 
+	let ipt_str = "arr[1]" in
+	let arr_expr = Expr_Without_Block (None, Place_Expr "arr") in
+	let index_expr = Expr_Without_Block (None, Literal_Expr (Integer_Literal (Dec_Int_Lit "1"))) in
+	let expected = Expr_Without_Block (None, Index_Expr(arr_expr, index_expr)) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check expr_testable) "array indexing" expected actual
+
+let test_struct_expr1() = 
+	let parser_ast = parse_ast struct_expr_toplevel in
+	let ipt_str = "Point {x: 10.0, y: 20.0}" in 
+	let lit1 = Literal_Expr (Float_Literal "10.0") in
+	let lit2 = Literal_Expr (Float_Literal "20.0") in
+	let field1 = With_Expr_Ident(None, "x", Expr_Without_Block(None, lit1)) in
+	let field2 = With_Expr_Ident(None, "y", Expr_Without_Block(None, lit2)) in
+	let expected = Struct_Expr_Struct("Point", [field1; field2], None) in
+	let actual = parser_ast ipt_str in
+	Alcotest.(check struct_expr_testable) "struct struct" expected actual
+
+(* let expr for the next *)
 
 let () = let open Alcotest in run "unit tests" [
 		"struct-case", [
@@ -377,6 +411,8 @@ let () = let open Alcotest in run "unit tests" [
 		"operator-expressions", [test_case "operator expressions" `Quick test_op_expr1;
 															test_case "unary operator expressions" `Quick test_op_expr2];
 
-		"array-expressions", [test_case "array expressions" `Quick test_array_expr1]
+		"array-expressions", [test_case "array expressions" `Quick test_array_expr1;
+													test_case "array indexing" `Quick test_array_expr2];
+		"struct-expressions", [test_case "struct expressions" `Quick test_struct_expr1]
 
 	]
