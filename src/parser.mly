@@ -387,7 +387,7 @@ tuple_index_expr:
 
 struct_expr: 
 	| s = struct_expr_struct { Struct_Expr_Struct s }
-	// | t = struct_expr_tuple { Struct_Expr_Tuple t } this is equiv to call expr
+	// | t = struct_expr_tuple { Struct_Expr_Tuple t } //this is equiv to call expr
 	// | u = struct_expr_unit { Struct_Expr_Unit u }
 
 /* 
@@ -397,19 +397,19 @@ struct_expr_NSS
 
 struct_expr_struct:
 	| p = path_in_expr LBRACE
-	fs = separated_list_option_trailing_sep(COMMA, struct_expr_field) RBRACE 
-		{ (p, fs, None) } 
+		fs = separated_list_option_trailing_sep(COMMA, struct_expr_field) RBRACE 
+			{ (p, fs, None) } 
 	
 	// | p = path_in_expr LBRACE fs = separated_list(COMMA, struct_expr_field) 
 	// 	COMMA b = struct_base ioption(COMMA) RBRACE 
 	// 	{ (p, fs, Some b) }	
 
 struct_expr_field: 
-	| oa = outer_attrs id = IDENT COLON e = expr
+	| oa = option(outer_attrs) id = IDENT COLON e = expr
 		{ With_Expr_Ident (None, id, e)}
-	| oa = outer_attrs  t  = tuple_index COLON e = expr 
+	| oa = option(outer_attrs)  t  = tuple_index COLON e = expr 
 		{ With_Expr_Tuple_Index (None, t, e)}
-	| oa = outer_attrs id = IDENT
+	| oa = option(outer_attrs) id = IDENT
 	 	{ Without_Expr (None, id) }
 
 struct_base:

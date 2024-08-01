@@ -378,7 +378,7 @@ let test_array_expr2() =
 
 let test_struct_expr1() = 
 	let parser_ast = parse_ast struct_expr_toplevel in
-	let ipt_str = "Point {x: 10.0, y: 20.0};" in 
+	let ipt_str = "Point {x: 10.0, y: 20.0}" in 
 	let lit1 = Literal_Expr (Float_Literal "10.0") in
 	let lit2 = Literal_Expr (Float_Literal "20.0") in
 	let field1 = With_Expr_Ident(None, "x", Expr_Without_Block(None, lit1)) in
