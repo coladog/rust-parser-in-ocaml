@@ -9,7 +9,7 @@
 (synopsis "x")
 (description "x")
 (name rust_parser)
-(depends str alcotest)
+(depends  alcotest)
 )
 
 (generate_opam_files)
