@@ -2,3 +2,5 @@ _build
 .VSCodeCounter
 src/_build_interp
 _build_interp
+_temp
+src/_temp

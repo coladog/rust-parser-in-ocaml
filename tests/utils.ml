@@ -1,50 +1,53 @@
 open Lexer
 open Syntax 
-open Str
+open Str 
+
+let rec create_directory_recursively path =
+  let parent_dir = Filename.dirname path in (* exclude the last part *)
+  if not (directory_exists parent_dir) then
+    create_directory_recursively parent_dir;
+  if not (directory_exists path) then
+    Unix.mkdir path 0o777
+and directory_exists path =
+  try
+    let stats = Unix.lstat path in
+    stats.st_kind = S_DIR
+  with Unix.Unix_error (ENOENT, _, _) -> false
+
+let read_whole_file ic = 
+	let rec read_whole_file' ic acc = 
+		try
+			let line = input_line ic in
+			read_whole_file' ic (acc ^ line ^ "\n")
+		with End_of_file -> acc in
+	read_whole_file' ic ""
 
 let preprocess_if_expr str = 
-	let strs_sep_if = Str.full_split (Str.regexp "\\bif\\b") str in
-	let ret = ref "" in 
-	let met_delim = ref false in 
-	(* return original string if not matching if *)
-	let rec loop strs_sep_if = 
-		match strs_sep_if with
-		| [] -> !ret
-		| hd::tl -> 
-			match hd with 
-			| Delim _ -> 
-				met_delim := true;
-				loop tl
-			| Text s -> 
-				if not !met_delim then begin
-					ret := !ret ^ s;
-					loop tl
-				end
-					(* match if the next word is let, if it is, then skip *)
-				else if Str.string_match (Str.regexp "\\blet\\b") s 0 then 
-					loop tl
-				else begin
-					ret := !ret ^ "if(";
-					let str_arr = Array.of_seq (String.to_seq s) in
-					(* find the first occurance of { when paren_cnt is 0, put a ) *)
-					let paren_cnt = ref 0 in
-					let inserted_rparen = ref false in
-					for i = 0 to Array.length str_arr - 1 do
-						if str_arr.(i) = '(' then paren_cnt := !paren_cnt + 1
-						else if str_arr.(i) = ')' then paren_cnt := !paren_cnt - 1
-						else if not !inserted_rparen
-								 && str_arr.(i) = '{' && !paren_cnt = 0 then begin
-							ret := !ret ^ ")";
-							inserted_rparen := true
-						end;
-						ret := !ret ^ (String.make 1 str_arr.(i)) 
-					done;
+	(* store the string into a temp file, then call the python func in src *)
+	create_directory_recursively "./_build/preprocess/";
+	let build_folder_exists = Sys.file_exists "_build" in
+	let t = Unix.time () in
+	let local_t = Unix.localtime t in
+	let filename = Printf.sprintf "./_build/preprocess/p_%d_%d_%d_%d;%d_%d" 
+					(local_t.tm_year + 1900) (local_t.tm_mon + 1) local_t.tm_mday local_t.tm_hour 
+					local_t.tm_min local_t.tm_sec in
+	let timeofday = Unix.gettimeofday () in
+	let unique_filename = filename ^ string_of_float timeofday in
 
-					met_delim := false;
-					loop tl
-				end 
-	in
-	loop strs_sep_if
+	(* create the .in file *)
+	let oc = open_out (unique_filename ^ ".in") in (* out channel *)
+	let absolute_in_filename = Unix.realpath (unique_filename ^ ".in") in
+	Printf.fprintf oc "%s" str;
+	close_out oc;
+
+	Sys.command ("../src/preprocessor.py " ^ "\"" ^ absolute_in_filename ^ "\"") |> ignore;
+	(* create the .out file *)
+
+	let ic = open_in (unique_filename ^ ".out") in
+	let str = read_whole_file ic in
+	close_in ic;
+	str
+
 
 let parse_ast root_element str = 
 	let str = preprocess_if_expr str in
