@@ -7,7 +7,7 @@ maintainer: ["tzyt"]
 homepage: "x"
 depends: [
   "dune" {>= "3.16"}
-  "str"
+  "alcotest"
   "odoc" {with-doc}
 ]
 build: [
