@@ -110,6 +110,7 @@ class Preprocess():
         for c in self.s:
             self.update_token(c)
         self.update_token("]")
+        # forcing the lexer to update remaining contents 
         self.get_token_str_list()
         self.tokens.pop()
         self.token_and_strs.pop()

@@ -2,3 +2,14 @@
 (name rust_parser)
 (version 0.1)
 (using menhir 3.0)
+
+(package
+(maintainers"tzyt") 
+(homepage "x") 
+(synopsis "x")
+(description "x")
+(name rust_parser)
+(depends str alcotest)
+)
+
+(generate_opam_files)

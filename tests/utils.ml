@@ -1,5 +1,5 @@
-open Lexer
-open Syntax 
+open RSlexer
+open RSsyntax 
 open Str 
 
 let rec create_directory_recursively path =
@@ -49,18 +49,20 @@ let preprocess_if_expr str =
 	str
 
 
-let parse_ast root_element str = 
-	let str = preprocess_if_expr str in
-	let lexbuf = Lexing.from_string str in
-	let ast = root_element Lexer.read_token lexbuf in
+let parse_ast use_pp root_element str =
+	let sref = ref str in
+	if use_pp then 
+		sref := preprocess_if_expr str;
+	let lexbuf = Lexing.from_string !sref in
+	let ast = root_element RSlexer.read_token lexbuf in
 	ast  
 
-let item_testable = Alcotest.testable Syntax.pp_item Syntax.equal_item
-let fn_sig_testable = Alcotest.testable Syntax.pp_fn_sig Syntax.equal_fn_sig
-let int_lit_testable = Alcotest.testable Syntax.pp_integer_literal Syntax.equal_integer_literal
-let op_expr_testable = Alcotest.testable Syntax.pp_op_expr Syntax.equal_op_expr
+let item_testable = Alcotest.testable RSsyntax.pp_item RSsyntax.equal_item
+let fn_sig_testable = Alcotest.testable RSsyntax.pp_fn_sig RSsyntax.equal_fn_sig
+let int_lit_testable = Alcotest.testable RSsyntax.pp_integer_literal RSsyntax.equal_integer_literal
+let op_expr_testable = Alcotest.testable RSsyntax.pp_op_expr RSsyntax.equal_op_expr
 (* let literal_expr_testable = Alcotest.testable Syntax.pp_literal_expr Syntax.equal_literal_expr *)
-let expr_testable = Alcotest.testable Syntax.pp_expr Syntax.equal_expr
-let array_expr_testable = Alcotest.testable Syntax.pp_array_expr Syntax.equal_array_expr
-let index_expr_testable = Alcotest.testable Syntax.pp_tuple_index_expr Syntax.equal_tuple_index_expr
-let struct_expr_testable = Alcotest.testable Syntax.pp_struct_expr Syntax.equal_struct_expr
+let expr_testable = Alcotest.testable RSsyntax.pp_expr RSsyntax.equal_expr
+let array_expr_testable = Alcotest.testable RSsyntax.pp_array_expr RSsyntax.equal_array_expr
+let index_expr_testable = Alcotest.testable RSsyntax.pp_tuple_index_expr RSsyntax.equal_tuple_index_expr
+let struct_expr_testable = Alcotest.testable RSsyntax.pp_struct_expr RSsyntax.equal_struct_expr

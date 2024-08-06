@@ -1,23 +1,25 @@
-(ocamllex lexer)
+(ocamllex RSlexer)
 
 (menhir
- (modules tokens)
+ (modules RStokens)
  (flags --only-tokens)
  (explain false))
 
 (menhir
- (modules tokens parser)
- (merge_into parser)
- (flags --external-tokens Tokens)
+ (modules RStokens RSparser)
+ (merge_into RSparser)
+ (flags --external-tokens RStokens)
  (explain true))
 
 (library 
  (libraries str)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq))
- (modules syntax lexer tokens parser)
+ (modules RSsyntax RSlexer RStokens RSparser RSprinter)
  (name rust_parser)
+ (public_name rust_parser)
  (wrapped false))
+
 
 (env
  (dev

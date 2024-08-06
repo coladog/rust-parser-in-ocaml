@@ -1,5 +1,5 @@
-open Syntax 
-open Lexer
+open RSsyntax 
+open RSlexer
 
 (* type tk = 
   | Tk of Tokens.token
@@ -22,7 +22,7 @@ let () =
 let token_list_of_string str = 
   let lexbuf = Lexing.from_string str in 
   let rec loop acc = 
-    match Lexer.read_token lexbuf with 
+    match RSlexer.read_token lexbuf with 
     | EOF -> List.rev acc
     | _ -> loop ((Lexing.lexeme lexbuf)::acc)
   in 

@@ -1,10 +1,11 @@
 open Utils
-open Syntax 
-open Parser
+open RSsyntax 
+open RSparser
+
 
 let test_struct_def1 () = 
 	(* with visibility params and fields *)
-	let parse_ast = parse_ast item_toplevel in
+	let parse_ast = parse_ast false item_toplevel in
 	let ipt_str = "
 	pub struct Point {
 		x: i32,
@@ -42,11 +43,11 @@ let test_struct_def1 () =
 	}
 	" in (* should raise exception since forgot to add comma *)
 	Alcotest.check_raises 
-		"missing comma" (Parser.Error) (fun () -> let _ = parse_ast ipt_str in ())
+		"missing comma" (RSparser.Error) (fun () -> let _ = parse_ast ipt_str in ())
 
 let test_struct_def2 () = 
 	(* unit structs *)
-	let parse_ast = parse_ast item_toplevel in
+	let parse_ast = parse_ast false item_toplevel in
 	let ipt_str = "
 	pub crate struct Point;
 	" in 
@@ -71,7 +72,7 @@ let test_struct_def2 () =
 
 let test_struct_def3 () = 
 	(* tuple struct *)
-	let parse_ast = parse_ast item_toplevel in
+	let parse_ast = parse_ast false item_toplevel in
 	let ipt_str = " 
 	pub struct Point(i32, i32);
 	" in 
@@ -86,14 +87,14 @@ let test_struct_def3 () =
 
 let test_str_lit1() = 
 	(* string literal *)
-	let parse_ast = parse_ast string_literal_toplevel in
+	let parse_ast = parse_ast false string_literal_toplevel in
 	let ipt_str = "\"Hello World\"" in
 	let expected = "Hello World" in
 	Alcotest.(check string) "string literal" expected (parse_ast ipt_str)
 
 let test_str_lit2() = 
 	(* testing ascii escapes *)
-	let parse_ast = parse_ast string_literal_toplevel in
+	let parse_ast = parse_ast false string_literal_toplevel in
 	let ipt_str = "\"\\n\"" in
 	let expected = "\n" in
 	Alcotest.(check string) 
@@ -123,7 +124,7 @@ let test_str_lit2() =
 
 let test_str_lit3() = 
 	(* using \ to change line *)
-	let parse_ast = parse_ast string_literal_toplevel in
+	let parse_ast = parse_ast false string_literal_toplevel in
 	let ipt_str = "\"Hello \\\nWorld\"" in
 	let expected = "Hello World" in
 	Alcotest.(check string) 
@@ -131,7 +132,7 @@ let test_str_lit3() =
 
 let test_func_sig1() = 
 	(* function signature without parameters*)
-	let parse_ast = parse_ast fn_sig_toplevel in
+	let parse_ast = parse_ast false fn_sig_toplevel in
 	let ipt_str = "fn foo() -> i32;" in
 	let expected = (None, "foo", None, None, Some "i32", None) in
 	Alcotest.(check fn_sig_testable) 
@@ -144,7 +145,7 @@ let test_func_sig1() =
 
 let test_func_sig2() = 
 	(* function signature with parameters *) 
-	let parse_ast = parse_ast fn_sig_toplevel in
+	let parse_ast = parse_ast false fn_sig_toplevel in
 	let ipt_str = "fn foo(x: i32, y: i32) -> i32;" in
 	let param1_pattern = ("x", Type "i32") in
 	let param2_pattern = ("y", Type "i32") in
@@ -168,7 +169,7 @@ let test_func_sig2() =
 
 let test_func_sig3() = 
 	(* test signatures with self *)
-	let parse_ast_ = parse_ast fn_sig_toplevel in
+	let parse_ast_ = parse_ast false fn_sig_toplevel in
 	let ipt_str = "fn foo(&self) -> i32;" in
 	let mut = () in
 	let self_param_v = Short_Hand(None, Ref_Only (Some mut, None)) in
@@ -210,7 +211,7 @@ let test_func_sig3() =
 let test_func_sig4() = 
 	(* test situations with function qualifiers *)
 	let ipt_str = "extern \"c\" fn foo();" in
-	let parse_ast_ = parse_ast fn_sig_toplevel in
+	let parse_ast_ = parse_ast false fn_sig_toplevel in
 	let abi = "c" in
 	let extern_qualifier = Extern (Some abi) in
 	let expected = (Some extern_qualifier, "foo", None, None, None, None) in
@@ -225,7 +226,7 @@ let test_func_sig4() =
 
 let test_int_literals1() = 
 	(* test integer literals *)
-	let parse_ast_ = parse_ast integer_literal_toplevel in
+	let parse_ast_ = parse_ast false integer_literal_toplevel in
 	let expected = Dec_Int_Lit "123" in
 	Alcotest.(check int_lit_testable)
 		"dec integer literal" expected (parse_ast_ "123");
@@ -244,7 +245,7 @@ let test_int_literals1() =
 
 let test_float_literal1() = 
 	(* test float literals *)
-	let parse_ast_ = parse_ast float_literal_toplevel in
+	let parse_ast_ = parse_ast false float_literal_toplevel in
 	let lits = ["123.456"; "123."; "123e10"; "123.0f64"; 
 							"12E+99_f64"; "0.1f32"; "114E-514"] in
 	List.iter (fun x -> 
@@ -261,7 +262,7 @@ let test_float_literal1() =
 let test_op_expr1() = 
 
 	(* test binary operator expresions *)
-	let parse_ast = parse_ast op_expr_toplevel in 
+	let parse_ast = parse_ast false op_expr_toplevel in 
 	let ipt_str = "1 + 2" in
 	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
 	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
@@ -320,7 +321,7 @@ let test_op_expr1() =
 
 let test_op_expr2() = 
 	(* test unary operator expressions *)
-	let parse_ast = parse_ast op_expr_toplevel in
+	let parse_ast = parse_ast false op_expr_toplevel in
 	let ipt_str = "-1" in
 	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
 	let fir_expr = Expr_Without_Block (None, fir_lit_expr) in
@@ -342,7 +343,7 @@ let test_op_expr2() =
 	Alcotest.(check op_expr_testable) "negation and multiplication" expected actual
 
 let test_array_expr1() =  
-	let parse_ast = parse_ast array_expr_toplevel in
+	let parse_ast = parse_ast false array_expr_toplevel in
 	let ipt_str = "[1, 2, 3]" in
 	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
 	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
@@ -368,7 +369,7 @@ let test_array_expr1() =
 
 let test_array_expr2() = 
 	(* test array indexing *)
-	let parse_ast = parse_ast expr_toplevel in 
+	let parse_ast = parse_ast false expr_toplevel in 
 	let ipt_str = "arr[1]" in
 	let arr_expr = Expr_Without_Block (None, Place_Expr "arr") in
 	let index_expr = Expr_Without_Block (None, Literal_Expr (Integer_Literal (Dec_Int_Lit "1"))) in
@@ -377,7 +378,7 @@ let test_array_expr2() =
 	Alcotest.(check expr_testable) "array indexing" expected actual
 
 let test_struct_expr1() = 
-	let parser_ast = parse_ast struct_expr_toplevel in
+	let parser_ast = parse_ast false struct_expr_toplevel in
 	let ipt_str = "Point {x: 10.0, y: 20.0}" in 
 	let lit1 = Literal_Expr (Float_Literal "10.0") in
 	let lit2 = Literal_Expr (Float_Literal "20.0") in
@@ -426,6 +427,20 @@ let test_preprocess_if() =
 	Alcotest.(check str_testable) "no if expression" expected_str actual_str
 	(* test if let *)
 
+let test_if_expr() = 
+	let parse_ast = parse_ast true expr_toplevel in
+	let ipt_str = "if 1 {1} else {2}" in
+	let fir_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "1")) in
+	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
+	let cond_expr  = Expr_Without_Block (None, fir_lit_expr) in
+	let block_ret_expr = Block_Expr(None, [], Some sec_lit_expr) in
+	let fir_block_exr = (None, [], Some fir_lit_expr) in
+	let sec_block_expr = (None, [], Some sec_lit_expr) in 
+	let else_block = Else_Block(sec_block_expr) in
+	let expected = Expr_With_Block(None, If_Expr(cond_expr, fir_block_exr, Some else_block)) in
+	let actual = parse_ast ipt_str in
+	Alcotest.(check expr_testable) "if expression" expected actual
+
 let () = let open Alcotest in run "unit tests" [
 		"struct-case", [
 			test_case "struct struct" `Quick test_struct_def1;
@@ -451,6 +466,7 @@ let () = let open Alcotest in run "unit tests" [
 		"array-expressions", [test_case "array expressions" `Quick test_array_expr1;
 													test_case "array indexing" `Quick test_array_expr2];
 		"struct-expressions", [test_case "struct expressions" `Quick test_struct_expr1];
-		"preprocess", [test_case "preprocess if" `Quick test_preprocess_if]
+		"preprocess", [test_case "preprocess if" `Quick test_preprocess_if];
+		"if-expr", [test_case "if expression" `Quick test_if_expr]
 
 	]
