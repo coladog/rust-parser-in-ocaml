@@ -371,7 +371,7 @@ let test_array_expr2() =
 	(* test array indexing *)
 	let parse_ast = parse_ast false expr_toplevel in 
 	let ipt_str = "arr[1]" in
-	let arr_expr = Expr_Without_Block (None, Place_Expr "arr") in
+	let arr_expr = Expr_Without_Block (None, Intermedaite (Place_Or_Struct_Unit "arr")) in
 	let index_expr = Expr_Without_Block (None, Literal_Expr (Integer_Literal (Dec_Int_Lit "1"))) in
 	let expected = Expr_Without_Block (None, Index_Expr(arr_expr, index_expr)) in
 	let actual = parse_ast ipt_str in
@@ -434,7 +434,7 @@ let test_if_expr() =
 	let sec_lit_expr = Literal_Expr (Integer_Literal (Dec_Int_Lit "2")) in
 	let cond_expr  = Expr_Without_Block (None, fir_lit_expr) in
 	let block_ret_expr = Block_Expr(None, [], Some sec_lit_expr) in
-	let fir_block_exr = (Some [], [], Some fir_lit_expr) in
+	let fir_block_exr = (None, [], Some fir_lit_expr) in
 	let sec_block_expr = (None, [], Some sec_lit_expr) in 
 	let else_block = Else_Block(sec_block_expr) in
 	let expected = Expr_With_Block(None, If_Expr(cond_expr, fir_block_exr, Some else_block)) in

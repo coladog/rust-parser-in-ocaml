@@ -213,6 +213,7 @@ and expr_without_block =
 	| Call_Expr of call_expr
 	| Field_Access_Expr of field_access_expr
 	| Place_Expr of place_expression
+	| Intermedaite of _intermediate_expr_without_block 
 
 and expr_with_block = 
 	| Block_Expr of block_expr
@@ -360,6 +361,15 @@ and visibility =
 	| Pub_Super
 	| Pub_Path of simple_path
 
+(* Intermediate nodes: 
+		used during parsing phase but does not exist in final AST *)
+
+
+and _intermediate_expr_without_block = 
+	| Call_Or_Struct_Tuple of _call_expr_or_struct_expr_tuple
+	| Place_Or_Struct_Unit of _place_expr_or_struct_expr_unit
+and _call_expr_or_struct_expr_tuple = expr * expr list
+and _place_expr_or_struct_expr_unit = string
 
 and unsafe = unit
 and safety = unsafe option

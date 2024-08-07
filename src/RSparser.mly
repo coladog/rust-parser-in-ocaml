@@ -261,9 +261,8 @@ expr_without_block:
 	| t = tuple_expr { Tuple_Expr t }
 	| t = tuple_index_expr { Tuple_Index_Expr t } // left resursion
 	| s = struct_expr { Struct_Expr s }
-	| c = call_expr { Call_Expr c } // left resursion
 	| f = field_access_expr { Field_Access_Expr f } // left resursion 
-	| p = IDENT { Place_Expr p }
+	| i = _intermedaite_expr_without_blocks { Intermedaite i }
 
 expr_with_block:
 	| b = block_expr { Block_Expr b }
@@ -387,8 +386,10 @@ tuple_index_expr:
 
 struct_expr: 
 	| s = struct_expr_struct { Struct_Expr_Struct s }
-	// | t = struct_expr_tuple { Struct_Expr_Tuple t } //this is equiv to call expr
+	// | t = struct_expr_tuple { Struct_Expr_Tuple t } 
 	// | u = struct_expr_unit { Struct_Expr_Unit u }
+	// struct_expr_tuple and struct_expr_unit are in conflict with other exprs
+	// used intermediate node to resolve
 
 /* 
 TODO:
@@ -415,20 +416,12 @@ struct_expr_field:
 struct_base:
 	| DOTDOTDOT e = expr { e }
 
-struct_expr_tuple: 
-	| p = path_in_expr t = tuple_expr { (p, t) }
-
 // struct_expr_unit: 
-// 	| p = path_in_expr { p } %prec LOWEST_PRIORITY
-// // FIXME: this cause ambiguity with expression with idnetifier
-// 	// this have overlaps with other expr starting with path_in_expr 
-// 	// so assign it with lowest priority
+// in conflict with place expr, used intermediate node to resolve
 
 			/* 8.2.9 Call expressions */
 
-call_expr: 
-	| e = expr LPAREN ls = separated_list_option_trailing_sep(COMMA, expr) RPAREN 
-	  { (e, ls) }
+// in conflict with struct_expr_tuple, used intermediate node to resolve
 
 			/* 8.2.15 Field access expressions */
 
@@ -482,6 +475,22 @@ visibility:
 	| KW_PUB KW_SUPER { Pub_Super }
 	// TODO: Pub_Path
 
+
+/* intermediate nodes */
+_call_expr_or_struct_expr_tuple: 
+	| e = expr LPAREN ls = separated_list_option_trailing_sep(COMMA, expr) RPAREN 
+	  { (e, ls) }
+
+_place_expr_or_struct_expr_unit: 
+	| p = path_in_expr { p } 
+
+// FIXME: change this after implementing path_in_expr
+
+_intermedaite_expr_without_blocks:
+	| cs = _call_expr_or_struct_expr_tuple { Call_Or_Struct_Tuple cs }
+	| ps = _place_expr_or_struct_expr_unit { Place_Or_Struct_Unit ps }
+
+/* util funcs */
 
 separated_nonempty_list_option_trailing_sep(separator, X):
 	|  x = X
