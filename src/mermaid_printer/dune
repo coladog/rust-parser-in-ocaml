@@ -1,0 +1,14 @@
+(ocamllex lexer)
+
+(menhir
+ (modules parser)
+ (explain true)
+ )
+
+(library
+(preprocess
+  (pps ppx_deriving.show ppx_deriving.eq))
+ (name mermaid_printer)
+ (modules parser lexer syntax transform)
+ (wrapped false)
+)

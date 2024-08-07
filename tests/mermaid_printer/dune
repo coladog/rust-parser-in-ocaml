@@ -1,0 +1,5 @@
+(test
+ (name unit_test)
+ (libraries mermaid_printer)
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq))
+)

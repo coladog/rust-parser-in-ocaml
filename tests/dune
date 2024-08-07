@@ -5,7 +5,12 @@
  (libraries rust_parser alcotest)
 )
 
- (executable
+(test
+ (name printer_test)
+ (libraries rust_parser)
+)
+
+(executable
  (preprocess (pps ppx_deriving.show ppx_deriving.eq))
  (name print_token)
  (libraries rust_parser alcotest)
